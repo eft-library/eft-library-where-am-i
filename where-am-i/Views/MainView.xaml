@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:where_am_i.Views"
         xmlns:vm="clr-namespace:where_am_i.ViewModels"
         mc:Ignorable="d"
-        Title="사용자 확인" Height="200" Width="400">
+        Title="사용자 확인" Height="300" Width="350">
     <Window.DataContext>
         <vm:MainViewModel/>
     </Window.DataContext>
@@ -15,25 +15,53 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Margin="0,0,0,10">
-            <TextBlock Text="이메일"
-                       Margin="0,0,0,5"/>
-            <TextBox Height="30"
-                     Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}"/>
+        <!-- 상단 로고 -->
+        <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,0,0,20">
+            <Image Width="200" Height="60">
+                <Image.Source>
+                    <BitmapImage UriSource="https://image.eftlibrary.com/eftlibrary/tkl_main%2Flogo.png"/>
+                </Image.Source>
+            </Image>
         </StackPanel>
 
-        <Button Grid.Row="1"
-                Height="35"
-                Content="사용자 확인"
-                Command="{Binding CheckUserCommand}"
-                IsDefault="True"/>
+        <!-- 이메일 입력 -->
+        <StackPanel Grid.Row="1" Margin="0,0,0,15">
+            <TextBlock Text="이메일"
+               FontWeight="Bold"
+               FontSize="14"
+               Margin="0,0,0,5"/>
+            <TextBox Height="40"
+             FontSize="14"
+             Padding="8"
+             Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}"
+             BorderBrush="#CCC"
+             BorderThickness="1"
+             Background="White"/>
+        </StackPanel>
 
-        <TextBlock Grid.Row="2"
-                   Margin="0,10,0,0"
-                   Foreground="Red"
-                   Text="{Binding Message}"/>
+        <!-- 확인 버튼 -->
+        <Button Grid.Row="2"
+        Height="40"
+        Margin="0,0,0,10"
+        Content="사용자 확인"
+        Command="{Binding CheckUserCommand}"
+        Background="#4CAF50"
+        Foreground="White"
+        FontWeight="SemiBold"
+        FontSize="14"
+        BorderThickness="0"
+        HorizontalAlignment="Stretch"/>
+
+        <!-- 메시지 -->
+        <TextBlock Grid.Row="3"
+           Margin="0,10,0,0"
+           Foreground="Red"
+           FontWeight="Bold"
+           Text="{Binding Message}"/>
     </Grid>
+    
 </Window>

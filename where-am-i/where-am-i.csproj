@@ -8,6 +8,20 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>icon.ico</ApplicationIcon>
+
+    <!-- Self-contained 설정 -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier> <!-- 또는 win-x86 -->
+    <SelfContained>true</SelfContained>
+    
+    <!-- Single-file exe -->
+    <PublishSingleFile>true</PublishSingleFile>
+
+    <!-- 필요시 trimming (파일 크기 줄이기) -->
+    <!--<PublishTrimmed>true</PublishTrimmed>-->
   </PropertyGroup>
+
+  <ItemGroup>
+    <Folder Include="Assets\" />
+  </ItemGroup>
 
 </Project>

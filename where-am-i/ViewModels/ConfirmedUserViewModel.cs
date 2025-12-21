@@ -17,6 +17,7 @@ namespace where_am_i.ViewModels
         private FileSystemWatcher? watcher;
         private readonly HttpClient httpClient;
 
+
         public RelayCommand OpenWebCommand { get; }
         public RelayCommand ExitCommand { get; }
 
@@ -46,7 +47,7 @@ namespace where_am_i.ViewModels
 
         private void OpenWeb()
         {
-            string url = "https://eftlibrary.com";
+            string url = "https://eftlibrary.com/map-of-tarkov/CUSTOMS";
             try
             {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
@@ -68,11 +69,13 @@ namespace where_am_i.ViewModels
 
         private void StartWatchingScreenshots()
         {
-            string screenshotsPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
-                "Screenshots"
-            );
+            // 현재 로그인한 사용자 이름 가져오기
+            string userName = Environment.UserName;
 
+            // Tarkov 스크린샷 경로
+            string screenshotsPath = $@"C:\Users\{userName}\Documents\Escape from Tarkov\Screenshots";
+
+            // 폴더가 없으면 생성
             if (!Directory.Exists(screenshotsPath))
                 Directory.CreateDirectory(screenshotsPath);
 
@@ -95,7 +98,10 @@ namespace where_am_i.ViewModels
             };
 
             watcher.EnableRaisingEvents = true;
+
+            Console.WriteLine($"스크린샷 감시 시작: {screenshotsPath}");
         }
+
 
         private async Task SendScreenshotLocationAsync(string fileName)
         {
