@@ -1,0 +1,17 @@
+﻿<Window x:Class="where_am_i.Views.ConfirmedUserView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:where_am_i.ViewModels"
+        Title="Where-Am-I 활성화" Height="200" Width="400">
+
+    <StackPanel Margin="20" VerticalAlignment="Center" HorizontalAlignment="Center">
+        <Button Content="타르코프 도서관 열기"
+                Height="35"
+                Width="200"
+                Command="{Binding OpenWebCommand}"/>
+        <Button Content="프로그램 종료"
+                Height="35"
+                Width="200"
+                Command="{Binding ExitCommand}"/>
+    </StackPanel>
+</Window>
