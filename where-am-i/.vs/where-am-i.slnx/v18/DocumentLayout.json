@@ -7,24 +7,24 @@
       "RelativeMoniker": "D:0:0:{B117583C-7E49-E5C0-DCCE-D2840E00CABC}|where-am-i.csproj|solutionrelative:views\\confirmeduserview.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{B117583C-7E49-E5C0-DCCE-D2840E00CABC}|where-am-i.csproj|c:\\users\\poeynus\\desktop\\dev\\eft-library-where-am-i\\where-am-i\\views\\mainview.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{B117583C-7E49-E5C0-DCCE-D2840E00CABC}|where-am-i.csproj|solutionrelative:views\\mainview.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{B117583C-7E49-E5C0-DCCE-D2840E00CABC}|where-am-i.csproj|c:\\users\\poeynus\\desktop\\dev\\eft-library-where-am-i\\where-am-i\\viewmodels\\confirmeduserviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{B117583C-7E49-E5C0-DCCE-D2840E00CABC}|where-am-i.csproj|solutionrelative:viewmodels\\confirmeduserviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{B117583C-7E49-E5C0-DCCE-D2840E00CABC}|where-am-i.csproj|c:\\users\\poeynus\\desktop\\dev\\eft-library-where-am-i\\where-am-i\\viewmodels\\mainviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B117583C-7E49-E5C0-DCCE-D2840E00CABC}|where-am-i.csproj|solutionrelative:viewmodels\\mainviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{B117583C-7E49-E5C0-DCCE-D2840E00CABC}|where-am-i.csproj|c:\\users\\poeynus\\desktop\\dev\\eft-library-where-am-i\\where-am-i\\views\\confirmeduserview.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{B117583C-7E49-E5C0-DCCE-D2840E00CABC}|where-am-i.csproj|solutionrelative:views\\confirmeduserview.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{B117583C-7E49-E5C0-DCCE-D2840E00CABC}|where-am-i.csproj|c:\\users\\poeynus\\desktop\\dev\\eft-library-where-am-i\\where-am-i\\views\\mainview.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
-      "RelativeMoniker": "D:0:0:{B117583C-7E49-E5C0-DCCE-D2840E00CABC}|where-am-i.csproj|solutionrelative:views\\mainview.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+      "AbsoluteMoniker": "D:0:0:{B117583C-7E49-E5C0-DCCE-D2840E00CABC}|where-am-i.csproj|c:\\users\\poeynus\\desktop\\dev\\eft-library-where-am-i\\where-am-i\\viewmodels\\confirmeduserviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B117583C-7E49-E5C0-DCCE-D2840E00CABC}|where-am-i.csproj|solutionrelative:viewmodels\\confirmeduserviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{B117583C-7E49-E5C0-DCCE-D2840E00CABC}|where-am-i.csproj|c:\\users\\poeynus\\desktop\\dev\\eft-library-where-am-i\\where-am-i\\viewmodels\\mainviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{B117583C-7E49-E5C0-DCCE-D2840E00CABC}|where-am-i.csproj|solutionrelative:viewmodels\\mainviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{B117583C-7E49-E5C0-DCCE-D2840E00CABC}|where-am-i.csproj|c:\\users\\poeynus\\desktop\\dev\\eft-library-where-am-i\\where-am-i\\views\\mainview.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B117583C-7E49-E5C0-DCCE-D2840E00CABC}|where-am-i.csproj|solutionrelative:views\\mainview.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B117583C-7E49-E5C0-DCCE-D2840E00CABC}|where-am-i.csproj|c:\\users\\poeynus\\desktop\\dev\\eft-library-where-am-i\\where-am-i\\views\\mainview.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{B117583C-7E49-E5C0-DCCE-D2840E00CABC}|where-am-i.csproj|solutionrelative:views\\mainview.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{B117583C-7E49-E5C0-DCCE-D2840E00CABC}|where-am-i.csproj|c:\\users\\poeynus\\desktop\\dev\\eft-library-where-am-i\\where-am-i\\app.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
@@ -42,7 +42,7 @@
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 2,
               "Title": "ConfirmedUserView.xaml.cs",
               "DocumentMoniker": "C:\\Users\\poeynus\\Desktop\\DEV\\eft-library-where-am-i\\where-am-i\\Views\\ConfirmedUserView.xaml.cs",
               "RelativeDocumentMoniker": "Views\\ConfirmedUserView.xaml.cs",
@@ -55,7 +55,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 4,
               "Title": "MainView.xaml.cs",
               "DocumentMoniker": "C:\\Users\\poeynus\\Desktop\\DEV\\eft-library-where-am-i\\where-am-i\\Views\\MainView.xaml.cs",
               "RelativeDocumentMoniker": "Views\\MainView.xaml.cs",
@@ -63,12 +63,11 @@
               "RelativeToolTip": "Views\\MainView.xaml.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-12-21T00:53:55.952Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-12-21T00:53:55.952Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 1,
               "Title": "MainViewModel.cs",
               "DocumentMoniker": "C:\\Users\\poeynus\\Desktop\\DEV\\eft-library-where-am-i\\where-am-i\\ViewModels\\MainViewModel.cs",
               "RelativeDocumentMoniker": "ViewModels\\MainViewModel.cs",
@@ -81,15 +80,14 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 5,
               "Title": "MainView.xaml",
               "DocumentMoniker": "C:\\Users\\poeynus\\Desktop\\DEV\\eft-library-where-am-i\\where-am-i\\Views\\MainView.xaml",
               "RelativeDocumentMoniker": "Views\\MainView.xaml",
               "ToolTip": "C:\\Users\\poeynus\\Desktop\\DEV\\eft-library-where-am-i\\where-am-i\\Views\\MainView.xaml",
               "RelativeToolTip": "Views\\MainView.xaml",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
-              "WhenOpened": "2025-12-21T00:51:32.598Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-12-21T00:51:32.598Z"
             },
             {
               "$type": "Document",
@@ -105,16 +103,15 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 3,
               "Title": "ConfirmedUserViewModel.cs",
               "DocumentMoniker": "C:\\Users\\poeynus\\Desktop\\DEV\\eft-library-where-am-i\\where-am-i\\ViewModels\\ConfirmedUserViewModel.cs",
               "RelativeDocumentMoniker": "ViewModels\\ConfirmedUserViewModel.cs",
               "ToolTip": "C:\\Users\\poeynus\\Desktop\\DEV\\eft-library-where-am-i\\where-am-i\\ViewModels\\ConfirmedUserViewModel.cs",
               "RelativeToolTip": "ViewModels\\ConfirmedUserViewModel.cs",
-              "ViewState": "AgIAAD8AAAAAAAAAAAA6wG8AAAANAAAAAAAAAA==",
+              "ViewState": "AgIAAEAAAAAAAAAAAAAkwG8AAAANAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-12-21T00:32:51.391Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-12-21T00:32:51.391Z"
             },
             {
               "$type": "Document",
