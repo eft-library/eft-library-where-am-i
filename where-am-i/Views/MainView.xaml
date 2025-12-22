@@ -54,7 +54,8 @@
         FontWeight="SemiBold"
         FontSize="14"
         BorderThickness="0"
-        HorizontalAlignment="Stretch"/>
+        HorizontalAlignment="Stretch"
+        IsDefault="True"/>
 
         <!-- 메시지 -->
         <TextBlock Grid.Row="3"

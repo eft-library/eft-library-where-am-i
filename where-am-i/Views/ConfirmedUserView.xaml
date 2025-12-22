@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:where_am_i.ViewModels"
-        Title="Where-Am-I" Height="320" Width="420">
+        Title="Where-Am-I" Height="360" Width="500">
 
     <Window.Resources>
         <Style x:Key="FancyButtonStyle" TargetType="Button">
@@ -43,7 +43,7 @@
 
         <!-- 감시 중인 경로 -->
         <StackPanel Grid.Row="1" Margin="0,0,0,15">
-            <TextBlock Text="📂 감시 중인 스크린샷 경로"
+            <TextBlock Text="📂 감지 중인 스크린샷 경로"
                        FontWeight="Bold"
                        Margin="0,0,0,5"/>
 
@@ -52,9 +52,10 @@
                     <ItemsControl ItemsSource="{Binding WatchingPaths}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <TextBlock Text="• {Binding}" 
-                                           FontSize="12"
-                                           TextWrapping="Wrap"/>
+                                <TextBlock
+                                    Text="{Binding StringFormat=• {0}}"
+                                    FontSize="12"
+                                    TextWrapping="Wrap"/>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>

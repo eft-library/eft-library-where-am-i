@@ -14,13 +14,11 @@ using System.Collections.ObjectModel;
 
 namespace where_am_i.ViewModels
 {
-    // 감시 중인 경로 표시용
-    public ObservableCollection<string> WatchingPaths { get; } = new();
-
     public class ConfirmedUserViewModel : INotifyPropertyChanged
     {
         private readonly string email;
         private readonly HttpClient httpClient;
+        public ObservableCollection<string> WatchingPaths { get; } = new();
 
         // 여러 watcher 관리
         private readonly List<FileSystemWatcher> _watchers = new();
