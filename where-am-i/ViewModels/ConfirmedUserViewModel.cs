@@ -9,9 +9,14 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
 using where_am_i.Commands;
+using System.Collections.ObjectModel;
+
 
 namespace where_am_i.ViewModels
 {
+    // 감시 중인 경로 표시용
+    public ObservableCollection<string> WatchingPaths { get; } = new();
+
     public class ConfirmedUserViewModel : INotifyPropertyChanged
     {
         private readonly string email;
@@ -121,7 +126,14 @@ namespace where_am_i.ViewModels
             watcher.Created += OnScreenshotCreated;
             _watchers.Add(watcher);
 
-            Console.WriteLine($"📂 스크린샷 감시 시작: {path}");
+            // UI에 표시
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                if (includeSubdirectories)
+                    WatchingPaths.Add($"{path} (하위 포함)");
+                else
+                    WatchingPaths.Add(path);
+            });
         }
 
         // 스크린샷 생성 이벤트
