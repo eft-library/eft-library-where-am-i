@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Net.Http;
@@ -14,16 +15,16 @@ namespace where_am_i.ViewModels
     public class ConfirmedUserViewModel : INotifyPropertyChanged
     {
         private readonly string email;
-        private FileSystemWatcher? watcher;
         private readonly HttpClient httpClient;
 
+        // 여러 watcher 관리
+        private readonly List<FileSystemWatcher> _watchers = new();
 
         public RelayCommand OpenWebCommand { get; }
         public RelayCommand ExitCommand { get; }
 
         public ConfirmedUserViewModel(string userEmail)
         {
-            // 이메일 null 처리
             email = string.IsNullOrWhiteSpace(userEmail) ? "" : userEmail;
 
             httpClient = new HttpClient
@@ -34,7 +35,6 @@ namespace where_am_i.ViewModels
             OpenWebCommand = new RelayCommand(OpenWeb);
             ExitCommand = new RelayCommand(ExitApp);
 
-            // 스크린샷 감시 시작
             try
             {
                 StartWatchingScreenshots();
@@ -48,6 +48,7 @@ namespace where_am_i.ViewModels
         private void OpenWeb()
         {
             string url = "https://eftlibrary.com/map-of-tarkov/CUSTOMS";
+
             try
             {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
@@ -67,42 +68,116 @@ namespace where_am_i.ViewModels
             Application.Current.Shutdown();
         }
 
+        // 스크린샷 감시 시작
         private void StartWatchingScreenshots()
         {
-            // 현재 로그인한 사용자 이름 가져오기
             string userName = Environment.UserName;
 
-            // Tarkov 스크린샷 경로
-            string screenshotsPath = $@"C:\Users\{userName}\Documents\Escape from Tarkov\Screenshots";
-
-            // 폴더가 없으면 생성
-            if (!Directory.Exists(screenshotsPath))
-                Directory.CreateDirectory(screenshotsPath);
-
-            watcher = new FileSystemWatcher(screenshotsPath)
+            var screenshotPaths = new List<string>
             {
-                NotifyFilter = NotifyFilters.FileName | NotifyFilters.CreationTime
+                // Escape from Tarkov
+                $@"C:\Users\{userName}\Documents\Escape from Tarkov\Screenshots",
+
+                // Windows 기본 스크린샷
+                Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
+                    "Screenshots"
+                ),
+
+                // Steam (Pictures)
+                Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
+                    "Steam"
+                )
             };
 
-            watcher.Created += async (s, e) =>
+            // 일반 경로 감시
+            foreach (var path in screenshotPaths)
+            {
+                AddWatcher(path, includeSubdirectories: false);
+            }
+
+            // Steam userdata 전체 감시 (자동)
+            AddWatcher(
+                @"C:\Program Files (x86)\Steam\userdata",
+                includeSubdirectories: true
+            );
+        }
+
+        // FileSystemWatcher 생성 공통 메서드
+        private void AddWatcher(string path, bool includeSubdirectories)
+        {
+            if (!Directory.Exists(path))
+                return;
+
+            var watcher = new FileSystemWatcher(path)
+            {
+                IncludeSubdirectories = includeSubdirectories,
+                NotifyFilter = NotifyFilters.FileName | NotifyFilters.CreationTime,
+                Filter = "*.*",
+                EnableRaisingEvents = true
+            };
+
+            watcher.Created += OnScreenshotCreated;
+            _watchers.Add(watcher);
+
+            Console.WriteLine($"📂 스크린샷 감시 시작: {path}");
+        }
+
+        // 스크린샷 생성 이벤트
+        private async void OnScreenshotCreated(object sender, FileSystemEventArgs e)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(e.Name))
+                    return;
+
+                // 이미지 확장자 필터
+                string ext = Path.GetExtension(e.Name).ToLower();
+                if (ext != ".png" && ext != ".jpg" && ext != ".jpeg")
+                    return;
+
+                // Steam userdata 노이즈 필터
+                if (e.FullPath.Contains(@"\Steam\userdata\", StringComparison.OrdinalIgnoreCase) &&
+                    !e.FullPath.Contains(@"\screenshots\", StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+
+                // 파일 저장 완료 대기
+                await WaitUntilFileReady(e.FullPath);
+
+                await SendScreenshotLocationAsync(e.Name);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"스크린샷 처리 오류: {ex.Message}");
+            }
+        }
+
+        // 파일 저장 완료 대기
+        private async Task WaitUntilFileReady(string path, int retry = 10)
+        {
+            for (int i = 0; i < retry; i++)
             {
                 try
                 {
-                    if (!string.IsNullOrWhiteSpace(e.Name))
-                        await SendScreenshotLocationAsync(e.Name);
+                    using var stream = File.Open(
+                        path,
+                        FileMode.Open,
+                        FileAccess.Read,
+                        FileShare.None
+                    );
+                    return;
                 }
-                catch (Exception ex)
+                catch
                 {
-                    Console.WriteLine($"SendScreenshotLocationAsync 오류: {ex.Message}");
+                    await Task.Delay(200);
                 }
-            };
-
-            watcher.EnableRaisingEvents = true;
-
-            Console.WriteLine($"스크린샷 감시 시작: {screenshotsPath}");
+            }
         }
 
-
+        // API 전송
         private async Task SendScreenshotLocationAsync(string fileName)
         {
             if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(fileName))
