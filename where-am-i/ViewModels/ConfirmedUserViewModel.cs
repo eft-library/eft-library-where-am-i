@@ -50,7 +50,7 @@ namespace where_am_i.ViewModels
 
         private void OpenWeb()
         {
-            string url = "https://eftlibrary.com/map-of-tarkov/CUSTOMS";
+            string url = "https://eftlibrary.com/live-map/customs";
 
             try
             {
