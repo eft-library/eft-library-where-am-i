@@ -1,5 +1,7 @@
 # 내 위치 찾기 V 1.0
 
+📖 [자세한 사용법 및 문제 해결 안내](docs/USER_GUIDE.md)
+
 ## 타르코프 도서관 사이트의 내 위치 찾기와 연동하는 프로그램 입니다.
 
 게임에서 스크린샷을 캡쳐한 경우, 사이트와 연동하는 기능만을 구현하였습니다.
@@ -34,4 +36,3 @@
 VirusTotal에서 확인한 바이러스 여부 입니다.
 
 <img width="2480" height="1266" alt="virus_total" src="https://github.com/user-attachments/assets/bd69e313-cb57-4222-b7c9-961a20a6341d" />
-
