@@ -22,6 +22,13 @@ namespace where_am_i.Views
         {
             InitializeComponent();
             DataContext = new ConfirmedUserViewModel(email);
+            Closed += OnClosed;
+        }
+
+        private void OnClosed(object? sender, EventArgs e)
+        {
+            if (DataContext is IDisposable disposable)
+                disposable.Dispose();
         }
     }
 }

@@ -79,6 +79,12 @@
             <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
         </Style>
 
+        <Style x:Key="SecondaryButtonStyle"
+               TargetType="Button"
+               BasedOn="{StaticResource BaseButtonStyle}">
+            <Setter Property="Background" Value="{StaticResource SurfaceRaisedBrush}"/>
+        </Style>
+
         <Style x:Key="DangerButtonStyle"
                TargetType="Button"
                BasedOn="{StaticResource BaseButtonStyle}">
