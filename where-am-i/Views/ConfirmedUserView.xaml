@@ -6,11 +6,12 @@
         Width="620"
         ResizeMode="NoResize">
 
-    <Grid Margin="32">
+    <Grid Background="{StaticResource AppBackgroundBrush}">
         <Border Background="{StaticResource SurfaceBrush}"
                 BorderBrush="{StaticResource BorderBrush}"
                 BorderThickness="1"
                 CornerRadius="10"
+                Margin="32"
                 Padding="28">
             <Grid>
                 <Grid.RowDefinitions>
