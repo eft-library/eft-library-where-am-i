@@ -19,13 +19,31 @@
 
 처음에 화면을 진입하시면, 이메일을 입력하는 창이 나옵니다. 
 
+![프로그램 실행 화면](docs/images/init.png)
+
+EFT Library 계정 이메일을 입력한 뒤 **사용자 확인**을 누릅니다.
+
 실패하면 실패했다는 알림이 나오고, 성공하면 화면이 이동합니다.
 
 **실패**
-<img width="667" height="371" alt="스크린샷 2025-12-21 132725" src="https://github.com/user-attachments/assets/640340f5-48b5-42a2-b47e-8332dda7c1a1" />
+
+![존재하지 않는 사용자 알림](docs/images/invalid_user.png)
+
+등록되지 않은 이메일을 입력하면 **존재하지 않는 사용자** 알림이 표시됩니다.
 
 **성공**
-<img width="608" height="437" alt="스크린샷 2025-12-22 191211" src="https://github.com/user-attachments/assets/860c47a2-0365-4a87-8da3-839fb5603f90" />
+
+![스크린샷 감시 화면](docs/images/sucess.png)
+
+사용자 확인에 성공하면 스크린샷 감시 화면으로 이동하고, 자동으로 찾은 감시 경로가 표시됩니다.
+
+스크린샷 폴더가 자동으로 잡히지 않으면 **감시 폴더 선택** 버튼으로 직접 추가할 수 있습니다.
+
+![감시 폴더 직접 선택](docs/images/add_directory.png)
+
+![감시 폴더 등록 완료](docs/images/add_success.png)
+
+폴더가 정상 등록되면 감시 경로 목록에 새 경로가 추가됩니다.
 
 성공시 자동으로 동작하기에 그냥 방치하시면 됩니다.
 
@@ -35,4 +53,8 @@
 
 VirusTotal에서 확인한 바이러스 여부 입니다.
 
-<img width="2480" height="1266" alt="virus_total" src="https://github.com/user-attachments/assets/bd69e313-cb57-4222-b7c9-961a20a6341d" />
+![VirusTotal 검사 결과](docs/images/virustotal.png)
+
+1개 엔진만 탐지하는 경우 단일 파일 exe 배포 특성상 오탐일 수 있습니다. Windows Defender 등 주요 엔진의 검사 결과도 함께 확인해 주세요.
+
+![바이러스 검사 관련 안내](docs/images/virus_ok.png)
