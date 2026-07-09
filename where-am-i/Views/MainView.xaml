@@ -55,6 +55,11 @@
                                FontWeight="SemiBold"/>
                     <TextBox Height="44"
                              Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Text="타르코프 도서관 웹사이트에서 사용하는 이메일을 입력해 주세요. 이메일은 사이트 마이페이지에서 확인할 수 있습니다."
+                               Margin="0,8,0,0"
+                               Foreground="{StaticResource SecondaryTextBrush}"
+                               FontSize="12"
+                               TextWrapping="Wrap"/>
                 </StackPanel>
 
                 <Button Grid.Row="3"
