@@ -41,7 +41,7 @@
                                FontSize="22"
                                FontWeight="Bold"
                                HorizontalAlignment="Center"/>
-                    <TextBlock Text="EFT Library 계정으로 연결하세요"
+                    <TextBlock Text="타르코프 도서관 계정으로 연결하세요"
                                Margin="0,6,0,0"
                                Foreground="{StaticResource SecondaryTextBrush}"
                                FontSize="13"
