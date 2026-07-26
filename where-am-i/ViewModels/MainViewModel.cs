@@ -13,6 +13,7 @@ namespace where_am_i.ViewModels
     public class MainViewModel : INotifyPropertyChanged
     {
         private readonly UserService userService = new UserService();
+        private readonly UserPreferencesService preferencesService = new();
 
         private string email = "";
         public string Email
@@ -23,6 +24,17 @@ namespace where_am_i.ViewModels
                 email = value;
                 OnPropertyChanged();
                 CheckUserCommand.RaiseCanExecuteChanged();
+            }
+        }
+
+        private bool rememberEmail = true;
+        public bool RememberEmail
+        {
+            get => rememberEmail;
+            set
+            {
+                rememberEmail = value;
+                OnPropertyChanged();
             }
         }
 
@@ -45,6 +57,10 @@ namespace where_am_i.ViewModels
                 execute: CheckUser,
                 canExecute: () => !string.IsNullOrWhiteSpace(Email)
             );
+
+            var preferences = preferencesService.Load();
+            Email = preferences.RememberEmail ? preferences.Email : "";
+            RememberEmail = preferences.RememberEmail || string.IsNullOrWhiteSpace(preferences.Email);
         }
 
         private async void CheckUser()
@@ -64,6 +80,23 @@ namespace where_am_i.ViewModels
                         MessageBoxImage.Warning
                     );
                     return;
+                }
+
+                try
+                {
+                    if (RememberEmail)
+                        preferencesService.SaveEmail(Email);
+                    else
+                        preferencesService.ClearEmail();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(
+                        $"이메일 저장 설정을 적용하지 못했습니다.\n{ex.Message}",
+                        "설정 저장 오류",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning
+                    );
                 }
 
                 // 성공 시 화면 전환

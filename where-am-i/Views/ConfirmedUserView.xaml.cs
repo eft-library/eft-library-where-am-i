@@ -22,7 +22,14 @@ namespace where_am_i.Views
         {
             InitializeComponent();
             DataContext = new ConfirmedUserViewModel(email);
+            StateChanged += OnStateChanged;
             Closed += OnClosed;
+        }
+
+        private void OnStateChanged(object? sender, EventArgs e)
+        {
+            if (WindowState == WindowState.Minimized)
+                ((App)Application.Current).TrayIcon.HideToTray(this);
         }
 
         private void OnClosed(object? sender, EventArgs e)

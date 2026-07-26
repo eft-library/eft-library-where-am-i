@@ -20,6 +20,13 @@ namespace where_am_i.Views
         public MainView()
         {
             InitializeComponent();
+            StateChanged += OnStateChanged;
+        }
+
+        private void OnStateChanged(object? sender, EventArgs e)
+        {
+            if (WindowState == WindowState.Minimized)
+                ((App)Application.Current).TrayIcon.HideToTray(this);
         }
     }
 }
