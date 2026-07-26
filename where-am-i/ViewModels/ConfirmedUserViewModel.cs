@@ -11,7 +11,6 @@ using System.Windows;
 using System.Windows.Threading;
 using Microsoft.Win32;
 using where_am_i.Commands;
-using where_am_i.Models;
 using where_am_i.Services;
 
 namespace where_am_i.ViewModels
@@ -31,7 +30,6 @@ namespace where_am_i.ViewModels
         );
 
         private readonly string email;
-        private readonly LiveMapService liveMapService = new();
         private readonly Dictionary<string, FileSystemWatcher> watchers =
             new(StringComparer.OrdinalIgnoreCase);
         private readonly object watcherLock = new();
@@ -41,112 +39,8 @@ namespace where_am_i.ViewModels
         private bool isDisposed;
         private string watcherStatus = "스크린샷 폴더를 찾는 중입니다.";
         private string lastActivity = "아직 감지된 스크린샷이 없습니다.";
-        private LiveMapSelectorEntry? selectedMap;
-        private LiveMapFloor? selectedFloor;
-        private PlayerLocation? playerLocation;
-        private CancellationTokenSource? mapLoadCancellation;
-        private bool isMapLoading;
-        private string mapStatus = "지도 데이터를 불러오는 중입니다.";
-        private double mapWidth = 1000;
-        private double mapHeight = 700;
-        private double playerMarkerLeft;
-        private double playerMarkerTop;
-        private double playerMarkerRotation;
-        private bool isPlayerMarkerVisible;
 
         public ObservableCollection<string> WatchingPaths { get; } = new();
-        public ObservableCollection<LiveMapSelectorEntry> Maps { get; } = new();
-        public ObservableCollection<LiveMapFloor> Floors { get; } = new();
-
-        public LiveMapSelectorEntry? SelectedMap
-        {
-            get => selectedMap;
-            set
-            {
-                if (selectedMap?.NormalizedName == value?.NormalizedName)
-                    return;
-
-                selectedMap = value;
-                OnPropertyChanged();
-                if (value is not null)
-                    _ = LoadMapAsync(value.NormalizedName);
-            }
-        }
-
-        public LiveMapFloor? SelectedFloor
-        {
-            get => selectedFloor;
-            set
-            {
-                if (selectedFloor?.Id == value?.Id)
-                    return;
-
-                selectedFloor = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(MapImage));
-                UpdateMapProjection();
-            }
-        }
-
-        public Uri? MapImage => Uri.TryCreate(SelectedFloor?.Image, UriKind.Absolute, out var uri)
-            ? uri
-            : null;
-
-        public string MapStatus
-        {
-            get => mapStatus;
-            private set
-            {
-                mapStatus = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public bool IsMapLoading
-        {
-            get => isMapLoading;
-            private set
-            {
-                isMapLoading = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public double MapWidth
-        {
-            get => mapWidth;
-            private set { mapWidth = value; OnPropertyChanged(); }
-        }
-
-        public double MapHeight
-        {
-            get => mapHeight;
-            private set { mapHeight = value; OnPropertyChanged(); }
-        }
-
-        public double PlayerMarkerLeft
-        {
-            get => playerMarkerLeft;
-            private set { playerMarkerLeft = value; OnPropertyChanged(); }
-        }
-
-        public double PlayerMarkerTop
-        {
-            get => playerMarkerTop;
-            private set { playerMarkerTop = value; OnPropertyChanged(); }
-        }
-
-        public double PlayerMarkerRotation
-        {
-            get => playerMarkerRotation;
-            private set { playerMarkerRotation = value; OnPropertyChanged(); }
-        }
-
-        public bool IsPlayerMarkerVisible
-        {
-            get => isPlayerMarkerVisible;
-            private set { isPlayerMarkerVisible = value; OnPropertyChanged(); }
-        }
 
         public string WatcherStatus
         {
@@ -174,6 +68,7 @@ namespace where_am_i.ViewModels
             }
         }
 
+        public RelayCommand OpenWebCommand { get; }
         public RelayCommand SelectFolderCommand { get; }
         public RelayCommand ExitCommand { get; }
 
@@ -181,6 +76,7 @@ namespace where_am_i.ViewModels
         {
             email = userEmail?.Trim() ?? "";
 
+            OpenWebCommand = new RelayCommand(OpenWeb);
             SelectFolderCommand = new RelayCommand(SelectScreenshotFolder);
             ExitCommand = new RelayCommand(ExitApp);
 
@@ -192,61 +88,28 @@ namespace where_am_i.ViewModels
 
             RefreshWatchers();
             pathRefreshTimer.Start();
-            _ = LoadMapAsync("customs", initializeMapSelector: true);
         }
 
-        private async Task LoadMapAsync(string normalizedName, bool initializeMapSelector = false)
+        private void OpenWeb()
         {
-            mapLoadCancellation?.Cancel();
-            mapLoadCancellation?.Dispose();
-            mapLoadCancellation = new CancellationTokenSource();
-            var cancellationToken = mapLoadCancellation.Token;
-
-            IsMapLoading = true;
-            MapStatus = "지도 데이터를 불러오는 중입니다.";
+            const string url = "https://eftlibrary.com/live-map/customs";
 
             try
             {
-                var detail = await liveMapService.GetDetailAsync(normalizedName, cancellationToken);
-                if (cancellationToken.IsCancellationRequested || isDisposed)
-                    return;
-
-                if (initializeMapSelector || Maps.Count == 0)
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                 {
-                    Maps.Clear();
-                    foreach (var map in detail.MapSelector)
-                        Maps.Add(map);
-
-                    selectedMap = Maps.FirstOrDefault(map =>
-                        map.NormalizedName.Equals(normalizedName, StringComparison.OrdinalIgnoreCase)
-                    );
-                    OnPropertyChanged(nameof(SelectedMap));
-                }
-
-                Floors.Clear();
-                foreach (var floor in detail.Floors.OrderBy(floor => floor.FloorNo))
-                    Floors.Add(floor);
-
-                SelectedFloor = Floors.FirstOrDefault(floor => floor.FloorNo == 1)
-                    ?? Floors.FirstOrDefault();
-                MapStatus = SelectedFloor is null
-                    ? "표시할 수 있는 지도 층이 없습니다."
-                    : "마우스 휠로 확대하고 드래그로 이동할 수 있습니다.";
-
-                if (playerLocation is not null)
-                    ApplyPlayerLocation(playerLocation);
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
+                    FileName = url,
+                    UseShellExecute = true
+                });
             }
             catch (Exception ex)
             {
-                MapStatus = $"지도 로드 실패: {ex.Message}";
-            }
-            finally
-            {
-                if (!cancellationToken.IsCancellationRequested)
-                    IsMapLoading = false;
+                MessageBox.Show(
+                    $"웹 열기 실패: {ex.Message}",
+                    "오류",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error
+                );
             }
         }
 
@@ -423,9 +286,6 @@ namespace where_am_i.ViewModels
                     return;
                 }
 
-                if (PlayerLocationService.TryParse(fileName, out var location) && location is not null)
-                    RunOnUiThread(() => ApplyPlayerLocation(location));
-
                 await SendScreenshotLocationAsync(fileName);
             }
             catch (Exception ex)
@@ -440,51 +300,6 @@ namespace where_am_i.ViewModels
                 return false;
 
             return TarkovScreenshotFileNamePattern.IsMatch(fileName);
-        }
-
-        private void ApplyPlayerLocation(PlayerLocation location)
-        {
-            playerLocation = location;
-            var matchedFloor = PlayerLocationService.FindFloor(Floors, location);
-            if (matchedFloor is not null)
-                SelectedFloor = matchedFloor;
-
-            UpdateMapProjection();
-            MapStatus = $"현재 좌표 X {location.X:F1} · Y {location.Y:F1} · Z {location.Z:F1}";
-        }
-
-        private void UpdateMapProjection()
-        {
-            var bounds = SelectedFloor?.MapBounds;
-            if (
-                bounds is null || bounds.Length < 2 ||
-                bounds[0].Length < 2 || bounds[1].Length < 2 ||
-                playerLocation is null || SelectedMap is null
-            )
-            {
-                IsPlayerMarkerVisible = false;
-                return;
-            }
-
-            var south = Math.Min(bounds[0][0], bounds[1][0]);
-            var north = Math.Max(bounds[0][0], bounds[1][0]);
-            var west = Math.Min(bounds[0][1], bounds[1][1]);
-            var east = Math.Max(bounds[0][1], bounds[1][1]);
-            MapWidth = Math.Max(1, east - west);
-            MapHeight = Math.Max(1, north - south);
-
-            var (latitude, longitude) = PlayerLocationService.ToMapPosition(
-                SelectedMap.NormalizedName,
-                playerLocation
-            );
-            const double markerSize = 24;
-            PlayerMarkerLeft = longitude - west - markerSize / 2;
-            PlayerMarkerTop = north - latitude - markerSize / 2;
-            PlayerMarkerRotation = PlayerLocationService.ToMapYaw(
-                SelectedMap.NormalizedName,
-                playerLocation.Yaw
-            );
-            IsPlayerMarkerVisible = true;
         }
 
         private static async Task<bool> WaitUntilFileReadyAsync(
@@ -617,8 +432,6 @@ namespace where_am_i.ViewModels
                 return;
 
             isDisposed = true;
-            mapLoadCancellation?.Cancel();
-            mapLoadCancellation?.Dispose();
             pathRefreshTimer.Stop();
             pathRefreshTimer.Tick -= OnPathRefreshTimerTick;
 
