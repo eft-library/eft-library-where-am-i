@@ -10,6 +10,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using where_am_i.ViewModels;
+using Application = System.Windows.Application;
 
 namespace where_am_i.Views
 {

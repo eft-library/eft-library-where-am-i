@@ -7,6 +7,8 @@ using System.Windows;
 using where_am_i.Commands;
 using where_am_i.Services;
 using where_am_i.Views;
+using Application = System.Windows.Application;
+using MessageBox = System.Windows.MessageBox;
 
 namespace where_am_i.ViewModels
 {

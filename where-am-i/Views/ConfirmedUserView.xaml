@@ -4,7 +4,7 @@
         Title="EFT Library - 내 위치 찾기"
         Height="560"
         Width="620"
-        ResizeMode="NoResize">
+        ResizeMode="CanMinimize">
 
     <Grid Background="{StaticResource AppBackgroundBrush}">
         <Border Background="{StaticResource SurfaceBrush}"
