@@ -8,7 +8,7 @@
         Title="EFT Library - 내 위치 찾기"
         Height="470"
         Width="460"
-        ResizeMode="NoResize">
+        ResizeMode="CanMinimize">
     <Window.DataContext>
         <vm:MainViewModel/>
     </Window.DataContext>

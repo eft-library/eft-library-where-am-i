@@ -2,6 +2,7 @@
 using System.Data;
 using System.Windows;
 using where_am_i.Services;
+using Application = System.Windows.Application;
 
 namespace where_am_i
 {

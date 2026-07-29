@@ -12,6 +12,8 @@ using System.Windows.Threading;
 using Microsoft.Win32;
 using where_am_i.Commands;
 using where_am_i.Services;
+using Application = System.Windows.Application;
+using MessageBox = System.Windows.MessageBox;
 
 namespace where_am_i.ViewModels
 {

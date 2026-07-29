@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Windows;
 using Forms = System.Windows.Forms;
+using Application = System.Windows.Application;
 
 namespace where_am_i.Services
 {
