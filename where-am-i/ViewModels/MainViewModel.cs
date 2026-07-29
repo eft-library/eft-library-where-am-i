@@ -66,10 +66,11 @@ namespace where_am_i.ViewModels
         private async void CheckUser()
         {
             Message = "";
+            var checkedEmail = Email.Trim();
 
             try
             {
-                var isValid = await userService.CheckUserAsync(Email);
+                var isValid = await userService.CheckUserAsync(checkedEmail);
 
                 if (!isValid)
                 {
@@ -85,7 +86,7 @@ namespace where_am_i.ViewModels
                 try
                 {
                     if (RememberEmail)
-                        preferencesService.SaveEmail(Email);
+                        preferencesService.SaveEmail(checkedEmail);
                     else
                         preferencesService.ClearEmail();
                 }
@@ -100,7 +101,7 @@ namespace where_am_i.ViewModels
                 }
 
                 // 성공 시 화면 전환
-                var confirmedView = new ConfirmedUserView(email: Email);
+                var confirmedView = new ConfirmedUserView(email: checkedEmail);
                 confirmedView.Show();
 
                 // 현재 창 닫기

@@ -361,6 +361,15 @@ namespace where_am_i.ViewModels
                     return;
                 }
 
+                var responseContent = await response.Content.ReadAsStringAsync();
+                using var responseDocument = JsonDocument.Parse(responseContent);
+                if (!responseDocument.RootElement.TryGetProperty("data", out var dataElement) ||
+                    dataElement.ValueKind != JsonValueKind.True)
+                {
+                    SetLastActivity("서버 전송 실패: 사용자 정보를 확인할 수 없습니다.");
+                    return;
+                }
+
                 SetLastActivity($"최근 전송 {DateTime.Now:HH:mm:ss} · {fileName}");
             }
             catch (TaskCanceledException)
