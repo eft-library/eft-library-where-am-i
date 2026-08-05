@@ -11,6 +11,7 @@ using System.Windows;
 using System.Windows.Threading;
 using Microsoft.Win32;
 using where_am_i.Commands;
+using where_am_i.Models;
 using where_am_i.Services;
 using Application = System.Windows.Application;
 using MessageBox = System.Windows.MessageBox;
@@ -38,8 +39,13 @@ namespace where_am_i.ViewModels
         private readonly ConcurrentDictionary<string, DateTimeOffset> recentlyProcessed =
             new(StringComparer.OrdinalIgnoreCase);
         private readonly DispatcherTimer pathRefreshTimer;
+        private readonly UserPreferencesService preferencesService = new();
+        private readonly TarkovLogMonitor logMonitor = new();
         private bool isDisposed;
+        private bool isMonitoringEnabled = true;
         private string watcherStatus = "스크린샷 폴더를 찾는 중입니다.";
+        private string logStatus = "EFT 로그 폴더를 찾는 중입니다.";
+        private string raidStatus = "레이드 대기 중";
         private string lastActivity = "아직 감지된 스크린샷이 없습니다.";
 
         public ObservableCollection<string> WatchingPaths { get; } = new();
@@ -70,8 +76,39 @@ namespace where_am_i.ViewModels
             }
         }
 
+        public bool IsMonitoringEnabled
+        {
+            get => isMonitoringEnabled;
+            set
+            {
+                if (isMonitoringEnabled == value)
+                    return;
+
+                isMonitoringEnabled = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(MonitoringButtonText));
+                ApplyMonitoringState();
+            }
+        }
+
+        public string MonitoringButtonText => IsMonitoringEnabled ? "감지 중지" : "감지 시작";
+
+        public string LogStatus
+        {
+            get => logStatus;
+            private set { logStatus = value; OnPropertyChanged(); }
+        }
+
+        public string RaidStatus
+        {
+            get => raidStatus;
+            private set { raidStatus = value; OnPropertyChanged(); }
+        }
+
         public RelayCommand OpenWebCommand { get; }
         public RelayCommand SelectFolderCommand { get; }
+        public RelayCommand SelectLogFolderCommand { get; }
+        public RelayCommand ToggleMonitoringCommand { get; }
         public RelayCommand ExitCommand { get; }
 
         public ConfirmedUserViewModel(string userEmail)
@@ -80,7 +117,15 @@ namespace where_am_i.ViewModels
 
             OpenWebCommand = new RelayCommand(OpenWeb);
             SelectFolderCommand = new RelayCommand(SelectScreenshotFolder);
+            SelectLogFolderCommand = new RelayCommand(SelectLogFolder);
+            ToggleMonitoringCommand = new RelayCommand(() => IsMonitoringEnabled = !IsMonitoringEnabled);
             ExitCommand = new RelayCommand(ExitApp);
+
+            var preferences = preferencesService.Load();
+            isMonitoringEnabled = preferences.MonitoringEnabled;
+
+            logMonitor.StatusChanged += OnLogStatusChanged;
+            logMonitor.StateChanged += OnRaidStateChanged;
 
             pathRefreshTimer = new DispatcherTimer
             {
@@ -88,8 +133,21 @@ namespace where_am_i.ViewModels
             };
             pathRefreshTimer.Tick += OnPathRefreshTimerTick;
 
-            RefreshWatchers();
-            pathRefreshTimer.Start();
+            ApplyMonitoringState(savePreference: false);
+
+            if (!preferences.HasShownWelcome)
+            {
+                Application.Current.Dispatcher.BeginInvoke(() =>
+                {
+                    MessageBox.Show(
+                        "스크린샷과 EFT 로그 폴더를 자동으로 찾습니다.\n\n자동으로 찾지 못한 경우 아래의 폴더 선택 버튼으로 직접 지정해 주세요. 프로그램은 게임 파일을 수정하지 않고 로그와 스크린샷 이름만 읽습니다.",
+                        "내 위치 찾기 시작하기",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information
+                    );
+                    preferencesService.MarkWelcomeShown();
+                });
+            }
         }
 
         private void OpenWeb()
@@ -134,7 +192,8 @@ namespace where_am_i.ViewModels
             try
             {
                 var selectedPath = ScreenshotPathService.SaveCustomPath(dialog.FolderName);
-                AddWatcher(selectedPath);
+                if (IsMonitoringEnabled)
+                    AddWatcher(selectedPath);
                 UpdateWatcherStatus();
                 SetLastActivity($"감시 폴더를 등록했습니다: {selectedPath}");
             }
@@ -146,6 +205,106 @@ namespace where_am_i.ViewModels
                     MessageBoxButton.OK,
                     MessageBoxImage.Error
                 );
+            }
+        }
+
+        private void SelectLogFolder()
+        {
+            var dialog = new OpenFolderDialog
+            {
+                Title = "Escape from Tarkov Logs 폴더 선택",
+                Multiselect = false
+            };
+
+            if (dialog.ShowDialog() != true)
+                return;
+
+            try
+            {
+                var selectedPath = TarkovLogPathService.SaveCustomPath(dialog.FolderName);
+                logMonitor.Refresh();
+                LogStatus = $"로그 폴더를 등록했습니다: {selectedPath}";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"로그 폴더를 등록하지 못했습니다.\n{ex.Message}",
+                    "로그 경로 등록 오류",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error
+                );
+            }
+        }
+
+        private void ApplyMonitoringState(bool savePreference = true)
+        {
+            if (savePreference)
+            {
+                try { preferencesService.SaveMonitoringEnabled(IsMonitoringEnabled); }
+                catch (Exception ex) { SetLastActivity($"감지 설정 저장 오류: {ex.Message}"); }
+            }
+
+            if (IsMonitoringEnabled)
+            {
+                RefreshWatchers();
+                pathRefreshTimer.Start();
+                logMonitor.Start();
+                return;
+            }
+
+            pathRefreshTimer.Stop();
+            logMonitor.Stop();
+            string[] paths;
+            lock (watcherLock)
+                paths = watchers.Keys.ToArray();
+            foreach (var path in paths)
+                RemoveWatcher(path);
+            WatcherStatus = "스크린샷 감지 중지";
+        }
+
+        private void OnLogStatusChanged(object? sender, string status) =>
+            RunOnUiThread(() => LogStatus = status);
+
+        private async void OnRaidStateChanged(object? sender, RaidState state)
+        {
+            RunOnUiThread(() =>
+            {
+                RaidStatus = state.IsActive
+                    ? $"레이드 진행 중 · {state.Map ?? "맵 확인 중"}"
+                    : "레이드 대기 중";
+            });
+
+            await SendRaidStateAsync(state);
+        }
+
+        private async Task SendRaidStateAsync(RaidState state)
+        {
+            var payload = new
+            {
+                email,
+                map = state.Map,
+                started_at = state.StartedAt,
+                is_active = state.IsActive,
+                transit_count = state.TransitCount
+            };
+
+            try
+            {
+                using var content = new StringContent(
+                    JsonSerializer.Serialize(payload),
+                    Encoding.UTF8,
+                    "application/json"
+                );
+                using var response = await HttpClient.PostAsync(
+                    "/api/where-am-i/v3/send-raid-state",
+                    content
+                );
+                if (!response.IsSuccessStatusCode)
+                    SetLastActivity($"레이드 상태 전송 실패: {(int)response.StatusCode}");
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+            {
+                SetLastActivity($"레이드 상태 통신 오류: {ex.Message}");
             }
         }
 
@@ -445,6 +604,9 @@ namespace where_am_i.ViewModels
             isDisposed = true;
             pathRefreshTimer.Stop();
             pathRefreshTimer.Tick -= OnPathRefreshTimerTick;
+            logMonitor.StatusChanged -= OnLogStatusChanged;
+            logMonitor.StateChanged -= OnRaidStateChanged;
+            logMonitor.Dispose();
 
             string[] paths;
             lock (watcherLock)

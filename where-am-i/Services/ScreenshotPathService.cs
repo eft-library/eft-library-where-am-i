@@ -9,6 +9,12 @@ namespace where_am_i.Services
         private const string TarkovSteamAppId = "3932890";
         private static readonly string CustomPathFile = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "EFTLibrary",
+            "WhereAmI",
+            "screenshot-path.txt"
+        );
+        private static readonly string LegacyCustomPathFile = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "EFT Library",
             "where-am-i",
             "screenshot-path.txt"
@@ -70,10 +76,13 @@ namespace where_am_i.Services
         {
             try
             {
-                if (!File.Exists(CustomPathFile))
+                var sourcePath = File.Exists(CustomPathFile)
+                    ? CustomPathFile
+                    : LegacyCustomPathFile;
+                if (!File.Exists(sourcePath))
                     return null;
 
-                var path = File.ReadAllText(CustomPathFile).Trim();
+                var path = File.ReadAllText(sourcePath).Trim();
                 return string.IsNullOrWhiteSpace(path) ? null : NormalizePath(path);
             }
             catch
