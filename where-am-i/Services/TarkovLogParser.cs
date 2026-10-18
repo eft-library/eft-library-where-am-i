@@ -12,7 +12,10 @@ namespace where_am_i.Services
                 ["bigmap"] = "customs",
                 ["factory4_day"] = "factory",
                 ["factory4_night"] = "factory",
+                ["factory_day"] = "factory",
+                ["factory_night"] = "factory",
                 ["interchange"] = "interchange",
+                ["shopping_mall"] = "interchange",
                 ["laboratory"] = "the-lab",
                 ["labyrinth"] = "the-labyrinth",
                 ["lighthouse"] = "lighthouse",
@@ -23,7 +26,9 @@ namespace where_am_i.Services
                 ["terminal"] = "terminal",
                 ["woods"] = "woods",
                 ["sandbox"] = "ground-zero",
-                ["sandbox_high"] = "ground-zero"
+                ["sandbox_high"] = "ground-zero",
+                ["sandbox_start"] = "ground-zero",
+                ["sandbox_sl"] = "ground-zero"
             };
 
         public static RaidState Parse(string text)
@@ -38,6 +43,32 @@ namespace where_am_i.Services
                 int.TryParse(match.Groups[1].Value, out transitCount);
 
             return new RaidState(map, startedAt, isActive, transitCount);
+        }
+
+        public static LogLocation? ParseLastLocation(string text, DateTimeOffset? raidStartedAt)
+        {
+            LogLocation? location = null;
+            foreach (Match match in PositionRegex().Matches(text))
+            {
+                if (!DateTimeOffset.TryParseExact(
+                    match.Groups[1].Value,
+                    "yyyy-MM-dd HH:mm:ss.fff",
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeLocal,
+                    out var observedAt
+                ) ||
+                    !double.TryParse(match.Groups[2].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var x) ||
+                    !double.TryParse(match.Groups[3].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var y) ||
+                    !double.TryParse(match.Groups[4].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var z) ||
+                    (raidStartedAt.HasValue && observedAt < raidStartedAt.Value))
+                {
+                    continue;
+                }
+
+                location = new LogLocation(x, y, z, observedAt);
+            }
+
+            return location;
         }
 
         private static string? FindMap(string text)
@@ -93,5 +124,7 @@ namespace where_am_i.Services
         private static partial Regex LocationRegex();
         [GeneratedRegex(@"\[Transit\][^\r\n]*?Count:(\d+)", RegexOptions.IgnoreCase)]
         private static partial Regex TransitRegex();
+        [GeneratedRegex(@"(?m)^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+)[^\r\n]*Position:\((-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)\)")]
+        private static partial Regex PositionRegex();
     }
 }

@@ -54,6 +54,7 @@
                                FontSize="13"
                                FontWeight="SemiBold"/>
                     <TextBox Height="44"
+                             IsEnabled="{Binding CanEditUser}"
                              Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}"/>
                     <TextBlock Text="타르코프 도서관 웹사이트에서 사용하는 이메일을 입력해 주세요. 이메일은 사이트 마이페이지에서 확인할 수 있습니다."
                                Margin="0,8,0,0"
@@ -63,11 +64,12 @@
                     <CheckBox Content="이메일 저장"
                               Margin="0,12,0,0"
                               IsChecked="{Binding RememberEmail}"
+                              IsEnabled="{Binding CanEditUser}"
                               Foreground="{StaticResource PrimaryTextBrush}"/>
                 </StackPanel>
 
                 <Button Grid.Row="3"
-                        Content="사용자 확인"
+                        Content="{Binding CheckUserButtonText}"
                         Command="{Binding CheckUserCommand}"
                         Style="{StaticResource PrimaryButtonStyle}"
                         IsDefault="True"/>

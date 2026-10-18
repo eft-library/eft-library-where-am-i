@@ -12,8 +12,10 @@ namespace where_am_i.Services
         private bool isDisposed;
         private string? lastSignature;
         private RaidState? lastState;
+        private LogLocation? lastLocation;
 
         public event EventHandler<RaidState>? StateChanged;
+        public event EventHandler<LogLocation>? LocationChanged;
         public event EventHandler<string>? StatusChanged;
 
         public TarkovLogMonitor()
@@ -60,12 +62,22 @@ namespace where_am_i.Services
                 lastSignature = signature;
                 var text = await ReadTailAsync(logFile.FullName);
                 var state = TarkovLogParser.Parse(text);
+                var location = state.IsActive
+                    ? TarkovLogParser.ParseLastLocation(text, state.StartedAt)
+                    : null;
                 StatusChanged?.Invoke(this, $"로그 감지 중 · {logFile.DirectoryName}");
 
                 if (state != lastState)
                 {
                     lastState = state;
                     StateChanged?.Invoke(this, state);
+                }
+
+
+                if (location is not null && location != lastLocation)
+                {
+                    lastLocation = location;
+                    LocationChanged?.Invoke(this, location);
                 }
             }
             catch (UnauthorizedAccessException ex)
@@ -91,9 +103,12 @@ namespace where_am_i.Services
                 {
                     foreach (var path in Directory.EnumerateFiles(
                         directory,
-                        "application_*.log",
+                        "*.log",
                         SearchOption.AllDirectories
-                    ))
+                    ).Where(path => Path.GetFileName(path).Contains(
+                        "application",
+                        StringComparison.OrdinalIgnoreCase
+                    )))
                     {
                         var info = new FileInfo(path);
                         if (latest is null || info.LastWriteTimeUtc > latest.LastWriteTimeUtc)

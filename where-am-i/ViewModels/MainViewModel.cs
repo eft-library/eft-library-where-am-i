@@ -40,6 +40,26 @@ namespace where_am_i.ViewModels
             }
         }
 
+        private bool isCheckingUser;
+        public bool IsCheckingUser
+        {
+            get => isCheckingUser;
+            private set
+            {
+                if (isCheckingUser == value)
+                    return;
+
+                isCheckingUser = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanEditUser));
+                OnPropertyChanged(nameof(CheckUserButtonText));
+                CheckUserCommand.RaiseCanExecuteChanged();
+            }
+        }
+
+        public bool CanEditUser => !IsCheckingUser;
+        public string CheckUserButtonText => IsCheckingUser ? "확인 중…" : "사용자 확인";
+
         private string message = "";
         public string Message
         {
@@ -57,7 +77,7 @@ namespace where_am_i.ViewModels
         {
             CheckUserCommand = new RelayCommand(
                 execute: CheckUser,
-                canExecute: () => !string.IsNullOrWhiteSpace(Email)
+                canExecute: () => !IsCheckingUser && !string.IsNullOrWhiteSpace(Email)
             );
 
             var preferences = preferencesService.Load();
@@ -67,8 +87,13 @@ namespace where_am_i.ViewModels
 
         private async void CheckUser()
         {
-            Message = "";
+            if (IsCheckingUser || string.IsNullOrWhiteSpace(Email))
+                return;
+
             var checkedEmail = Email.Trim();
+            var shouldRememberEmail = RememberEmail;
+            IsCheckingUser = true;
+            Message = "";
 
             try
             {
@@ -87,7 +112,7 @@ namespace where_am_i.ViewModels
 
                 try
                 {
-                    if (RememberEmail)
+                    if (shouldRememberEmail)
                         preferencesService.SaveEmail(checkedEmail);
                     else
                         preferencesService.ClearEmail();
@@ -118,6 +143,10 @@ namespace where_am_i.ViewModels
                     MessageBoxButton.OK,
                     MessageBoxImage.Error
                 );
+            }
+            finally
+            {
+                IsCheckingUser = false;
             }
         }
 

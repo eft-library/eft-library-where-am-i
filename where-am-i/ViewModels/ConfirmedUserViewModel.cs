@@ -46,6 +46,7 @@ namespace where_am_i.ViewModels
         private string watcherStatus = "스크린샷 폴더를 찾는 중입니다.";
         private string logStatus = "EFT 로그 폴더를 찾는 중입니다.";
         private string raidStatus = "레이드 대기 중";
+        private string? currentRaidMap;
         private string lastActivity = "아직 감지된 스크린샷이 없습니다.";
 
         public ObservableCollection<string> WatchingPaths { get; } = new();
@@ -126,6 +127,7 @@ namespace where_am_i.ViewModels
 
             logMonitor.StatusChanged += OnLogStatusChanged;
             logMonitor.StateChanged += OnRaidStateChanged;
+            logMonitor.LocationChanged += OnLogLocationChanged;
 
             pathRefreshTimer = new DispatcherTimer
             {
@@ -267,6 +269,7 @@ namespace where_am_i.ViewModels
 
         private async void OnRaidStateChanged(object? sender, RaidState state)
         {
+            currentRaidMap = state.IsActive ? state.Map : null;
             RunOnUiThread(() =>
             {
                 RaidStatus = state.IsActive
@@ -275,6 +278,40 @@ namespace where_am_i.ViewModels
             });
 
             await SendRaidStateAsync(state);
+        }
+
+        private async void OnLogLocationChanged(object? sender, LogLocation location)
+        {
+            var payload = new
+            {
+                email,
+                map = currentRaidMap,
+                x = location.X,
+                y = location.Y,
+                z = location.Z,
+                observed_at = location.ObservedAt
+            };
+
+            try
+            {
+                using var content = new StringContent(
+                    JsonSerializer.Serialize(payload),
+                    Encoding.UTF8,
+                    "application/json"
+                );
+                using var response = await HttpClient.PostAsync(
+                    "/api/where-am-i/v3/send-log-location",
+                    content
+                );
+                if (response.IsSuccessStatusCode)
+                    SetLastActivity($"로그 자동 위치 {DateTime.Now:HH:mm:ss} · X {location.X:0.0}, Z {location.Z:0.0}");
+                else
+                    SetLastActivity($"로그 위치 전송 실패: {(int)response.StatusCode}");
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+            {
+                SetLastActivity($"로그 위치 통신 오류: {ex.Message}");
+            }
         }
 
         private async Task SendRaidStateAsync(RaidState state)
@@ -606,6 +643,7 @@ namespace where_am_i.ViewModels
             pathRefreshTimer.Tick -= OnPathRefreshTimerTick;
             logMonitor.StatusChanged -= OnLogStatusChanged;
             logMonitor.StateChanged -= OnRaidStateChanged;
+            logMonitor.LocationChanged -= OnLogLocationChanged;
             logMonitor.Dispose();
 
             string[] paths;
