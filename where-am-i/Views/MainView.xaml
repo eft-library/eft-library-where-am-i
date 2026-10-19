@@ -5,6 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:where_am_i.ViewModels"
         mc:Ignorable="d"
+        Background="{StaticResource AppBackgroundBrush}"
+        Foreground="{StaticResource PrimaryTextBrush}"
         Title="EFT Library - 내 위치 찾기"
         Height="470"
         Width="460"

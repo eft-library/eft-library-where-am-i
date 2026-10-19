@@ -23,7 +23,7 @@ def run(args):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--dotnet', default='dotnet', help='Path to .NET 10 SDK executable')
-    parser.add_argument('--version', default='1.0.0', help='2-4 numeric components')
+    parser.add_argument('--version', default='4.0.0', help='2-4 numeric components')
     args = parser.parse_args()
     if not re.fullmatch(r'\d+(?:\.\d+){1,3}', args.version) or any(int(n) > 65534 for n in args.version.split('.')):
         parser.error('version must contain 2-4 numeric components between 0 and 65534')

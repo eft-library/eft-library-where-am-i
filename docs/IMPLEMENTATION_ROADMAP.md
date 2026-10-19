@@ -20,4 +20,4 @@
 
 ## 최종 로컬 결과
 
-C# 373개 검사와 Python 3개 테스트를 통과했고 Release Windows x64 self-contained 단일 실행 파일을 publish했다. 패키지는 `artifacts/where-am-i-1.0.0-win-x64.zip`, 해시와 manifest도 같은 폴더에 있다. [패키징 방법](RELEASE_PACKAGING.md)과 [Windows·운영 연동 검증표](WINDOWS_VALIDATION.md)를 따른다. 현재 버전은 기존 기본값 1.0.0(실행 표시 1.0.0.0)을 유지하며 공개 배포 버전은 별도로 정한다.
+C# 373개 검사와 Python 3개 테스트를 통과했고 Release Windows x64 self-contained 단일 실행 파일을 publish했다. 패키지는 `artifacts/where-am-i-4.0.0-win-x64.zip`, 해시와 manifest도 같은 폴더에 있다. [패키징 방법](RELEASE_PACKAGING.md)과 [Windows·운영 연동 검증표](WINDOWS_VALIDATION.md)를 따른다. 이번 배포 버전은 4.0.0(실행 표시 4.0.0.0)으로 확정했다.

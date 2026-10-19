@@ -189,6 +189,13 @@ namespace where_am_i.ViewModels
             private set { logPathReportStatus = value; OnPropertyChanged(); }
         }
 
+        private bool isVersionInfoVisible;
+        public bool IsVersionInfoVisible
+        {
+            get => isVersionInfoVisible;
+            private set { isVersionInfoVisible = value; OnPropertyChanged(); }
+        }
+        public RelayCommand ToggleVersionInfoCommand { get; }
         public RelayCommand CheckVersionCommand { get; }
         public RelayCommand OpenUpdateDownloadCommand { get; }
         public RelayCommand OpenWebCommand { get; }
@@ -207,6 +214,7 @@ namespace where_am_i.ViewModels
             ActivityView = CollectionViewSource.GetDefaultView(Activities);
             ActivityView.Filter = entry => !ShowOnlyErrors || entry is ActivityEntry { IsError: true };
 
+            ToggleVersionInfoCommand = new RelayCommand(() => IsVersionInfoVisible = !IsVersionInfoVisible);
             CheckVersionCommand = new RelayCommand(() => _ = CheckVersionAsync(), () => !isCheckingVersion && !isDisposed);
             OpenUpdateDownloadCommand = new RelayCommand(OpenUpdateDownload, () => updateDownloadUrl is not null && !isCheckingVersion && !isDisposed);
             OpenWebCommand = new RelayCommand(OpenWeb);

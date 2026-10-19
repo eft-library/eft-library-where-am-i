@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Windows;
@@ -21,6 +21,7 @@ namespace where_am_i.Views
         public MainView()
         {
             InitializeComponent();
+            where_am_i.Services.WindowThemeService.Apply(this);
             StateChanged += OnStateChanged;
         }
 

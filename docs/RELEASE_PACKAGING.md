@@ -3,10 +3,10 @@
 .NET 10 SDK와 Python 3이 필요하다. 저장소 루트에서 실행한다. Windows 앱 실행은 Windows에서만 가능하며 macOS에서는 Windows 대상으로 교차 publish한다.
 
 ```sh
-python3 tools/package_release.py --dotnet /path/to/dotnet --version 1.0.0
+python3 tools/package_release.py --dotnet /path/to/dotnet --version 4.0.0
 ```
 
-PATH에 SDK가 있으면 `--dotnet`을 생략한다. Windows에서는 `python tools/package_release.py --version 1.0.0`도 가능하다. 테스트의 디렉터리 심볼릭 링크 검증은 Windows 개발자 모드 또는 링크 생성 권한이 필요하다.
+PATH에 SDK가 있으면 `--dotnet`을 생략한다. Windows에서는 `python tools/package_release.py --version 4.0.0`도 가능하다. 테스트의 디렉터리 심볼릭 링크 검증은 Windows 개발자 모드 또는 링크 생성 권한이 필요하다.
 
 스크립트는 C# 검사와 Python 샘플 검사를 먼저 실행한다. 이후 Release·win-x64·self-contained·single-file로 publish하며 ReadyToRun=false를 명시해 호스트별 crossgen 차이를 피한다. trimming은 비활성 상태를 유지한다. Visual Studio FolderProfile은 Windows 전용 ReadyToRun 설정이므로 이 스크립트와 별도다.
 
