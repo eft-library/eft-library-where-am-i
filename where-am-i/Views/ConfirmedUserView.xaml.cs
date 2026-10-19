@@ -28,6 +28,12 @@ namespace where_am_i.Views
             Closed += OnClosed;
         }
 
+        private void OpenAppVersion(object sender, RoutedEventArgs e)
+        {
+            var dialog = new AppVersionView { Owner = this, DataContext = DataContext };
+            dialog.ShowDialog();
+        }
+
         private void OnStateChanged(object? sender, EventArgs e)
         {
             if (WindowState == WindowState.Minimized)

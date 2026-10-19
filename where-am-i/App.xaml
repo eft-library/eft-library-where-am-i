@@ -54,7 +54,7 @@
                         <Border x:Name="ButtonBorder"
                                 Background="{TemplateBinding Background}"
                                 CornerRadius="6">
-                            <ContentPresenter HorizontalAlignment="Center"
+                            <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center"
                                               VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>

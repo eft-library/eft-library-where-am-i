@@ -28,7 +28,14 @@
             <StackPanel>
                 <Image Width="190" Height="54" Margin="0,0,0,16"
                        Source="https://image.eftlibrary.com/eftlibrary/tkl_main%2Flogo.png" Stretch="Uniform"/>
-                <TextBlock Text="위치·레이드 감지" FontSize="22" FontWeight="Bold"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="위치·레이드 감지" FontSize="22" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <Button Grid.Column="1" Content="앱 버전" Click="OpenAppVersion"
+                            Style="{StaticResource SecondaryButtonStyle}" Margin="12,0,0,0"/>
+                </Grid>
                 <Grid Margin="0,12,0,16">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
@@ -61,7 +68,14 @@
                 </Border>
                 <Border Style="{StaticResource StatusCardStyle}">
                     <StackPanel>
-                        <TextBlock Text="스크린샷 위치" FontSize="14" FontWeight="SemiBold"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="스크린샷 위치" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <Button Grid.Column="1" Content="스크린샷 폴더 선택" Command="{Binding SelectFolderCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}" Margin="12,0,0,0" FontSize="12" Height="36" Padding="14,0"/>
+                        </Grid>
                         <TextBlock Text="{Binding WatcherStatus}" Style="{StaticResource StatusDetailStyle}"/>
                         <TextBlock Text="{Binding ScreenshotTransmissionStatus}" Style="{StaticResource StatusDetailStyle}"/>
                         <Expander Header="스크린샷 경로 보기" Margin="0,12,0,0"
@@ -77,15 +91,20 @@
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
                                 <TextBlock Text="{Binding ScreenshotPathReportStatus}" Style="{StaticResource StatusDetailStyle}"/>
-                                <TextBlock Text="직접 지정한 스크린샷 경로는 사용자 폴더명·이메일을 가려 자동 탐색 개선에 사용합니다. 감지 설정은 이 PC에서 복원합니다."
-                                           Style="{StaticResource StatusDetailStyle}" Margin="0,8,0,8"/>
                             </StackPanel>
                         </Expander>
                     </StackPanel>
                 </Border>
                 <Border Style="{StaticResource StatusCardStyle}">
                     <StackPanel>
-                        <TextBlock Text="로그 수집" FontSize="14" FontWeight="SemiBold"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="로그 수집" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <Button Grid.Column="1" Content="로그 폴더 선택" Command="{Binding SelectLogFolderCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}" Margin="12,0,0,0" FontSize="12" Height="36" Padding="14,0"/>
+                        </Grid>
                         <TextBlock Text="{Binding LogStatus}" Style="{StaticResource StatusDetailStyle}"/>
                         <Expander Header="로그 경로 보기" Margin="0,12,0,0"
                                   Foreground="{StaticResource SecondaryTextBrush}">
@@ -95,41 +114,11 @@
                                            TextTrimming="CharacterEllipsis" FontSize="12" Margin="0,4,0,12"
                                            Foreground="{StaticResource SecondaryTextBrush}"/>
                                 <TextBlock Text="{Binding LogPathReportStatus}" Style="{StaticResource StatusDetailStyle}"/>
-                                <TextBlock Text="직접 지정한 로그 경로는 사용자 폴더명·이메일을 가려 자동 탐색 개선에 사용합니다. 감지 설정은 이 PC에서 복원합니다."
-                                           Style="{StaticResource StatusDetailStyle}" Margin="0,8,0,8"/>
                             </StackPanel>
                         </Expander>
                     </StackPanel>
                 </Border>
 
-                <Border>
-                    <Border.Style>
-                        <Style TargetType="Border" BasedOn="{StaticResource StatusCardStyle}">
-                            <Setter Property="Visibility" Value="Collapsed"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsVersionInfoVisible}" Value="True">
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Border.Style>
-                    <StackPanel>
-                        <TextBlock Text="앱 버전" FontSize="14" FontWeight="SemiBold"/>
-                        <TextBlock Text="{Binding CurrentVersionText}" Style="{StaticResource StatusDetailStyle}"/>
-                        <TextBlock Text="{Binding VersionCheckStatus}" Style="{StaticResource StatusDetailStyle}"/>
-                        <TextBlock Text="{Binding LatestVersionText}" Style="{StaticResource StatusDetailStyle}"/>
-                        <TextBlock Text="{Binding LastVersionCheckText}" Style="{StaticResource StatusDetailStyle}"/>
-                        <ScrollViewer MaxHeight="120" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                            <TextBlock Text="{Binding ReleaseNotes}" Style="{StaticResource StatusDetailStyle}"/>
-                        </ScrollViewer>
-                        <WrapPanel Margin="0,10,0,0">
-                            <Button Content="버전 다시 확인" Command="{Binding CheckVersionCommand}"
-                                    Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,8,4"/>
-                            <Button Content="다운로드 페이지" Command="{Binding OpenUpdateDownloadCommand}"
-                                    Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,0,4"/>
-                        </WrapPanel>
-                    </StackPanel>
-                </Border>
                 <Border Style="{StaticResource StatusCardStyle}">
                     <StackPanel>
                         <Grid>
@@ -188,15 +177,8 @@
                 </Border>
 
                 <WrapPanel Margin="0,4,0,0">
-                    <Button Content="스크린샷 폴더 선택" Command="{Binding SelectFolderCommand}"
-                            Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,8,8"/>
-                    <Button Content="로그 폴더 선택" Command="{Binding SelectLogFolderCommand}"
-                            Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,8,8"/>
                     <Button Content="현재 맵 열기" Command="{Binding OpenWebCommand}"
                             Style="{StaticResource PrimaryButtonStyle}" Margin="0,0,8,8"/>
-                    <Button Content="앱 버전" Command="{Binding ToggleVersionInfoCommand}"
-                            ToolTip="버전 정보 표시 또는 숨기기"
-                            Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,8,8"/>
                     <Button Content="프로그램 종료" Command="{Binding ExitCommand}"
                             Style="{StaticResource DangerButtonStyle}" Margin="0,0,0,8"/>
                 </WrapPanel>

@@ -189,13 +189,6 @@ namespace where_am_i.ViewModels
             private set { logPathReportStatus = value; OnPropertyChanged(); }
         }
 
-        private bool isVersionInfoVisible;
-        public bool IsVersionInfoVisible
-        {
-            get => isVersionInfoVisible;
-            private set { isVersionInfoVisible = value; OnPropertyChanged(); }
-        }
-        public RelayCommand ToggleVersionInfoCommand { get; }
         public RelayCommand CheckVersionCommand { get; }
         public RelayCommand OpenUpdateDownloadCommand { get; }
         public RelayCommand OpenWebCommand { get; }
@@ -214,7 +207,6 @@ namespace where_am_i.ViewModels
             ActivityView = CollectionViewSource.GetDefaultView(Activities);
             ActivityView.Filter = entry => !ShowOnlyErrors || entry is ActivityEntry { IsError: true };
 
-            ToggleVersionInfoCommand = new RelayCommand(() => IsVersionInfoVisible = !IsVersionInfoVisible);
             CheckVersionCommand = new RelayCommand(() => _ = CheckVersionAsync(), () => !isCheckingVersion && !isDisposed);
             OpenUpdateDownloadCommand = new RelayCommand(OpenUpdateDownload, () => updateDownloadUrl is not null && !isCheckingVersion && !isDisposed);
             OpenWebCommand = new RelayCommand(OpenWeb);
@@ -524,11 +516,13 @@ namespace where_am_i.ViewModels
         private void OnLogStatusChanged(object? sender, string status) =>
             RunOnUiThread(() =>
             {
-                if (isDisposed || LogStatus == status) return;
+                if (isDisposed) return;
+                if (status.StartsWith("EFT application 로그를 찾지 못", StringComparison.Ordinal))
+                    status = "로그 감지 대기";
+                if (LogStatus == status) return;
                 LogStatus = status;
                 if (status.StartsWith("로그를 읽지 못", StringComparison.Ordinal) ||
-                    status.StartsWith("로그 폴더 접근 권한", StringComparison.Ordinal) ||
-                    status.StartsWith("EFT application 로그를 찾지 못", StringComparison.Ordinal))
+                    status.StartsWith("로그 폴더 접근 권한", StringComparison.Ordinal))
                     AddActivity("로그", status, true);
             });
 
