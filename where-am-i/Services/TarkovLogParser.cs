@@ -6,37 +6,6 @@ namespace where_am_i.Services
 {
     public static partial class TarkovLogParser
     {
-        private static readonly IReadOnlyDictionary<string, string> MapAliases =
-            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-            {
-                ["bigmap"] = "customs",
-                ["factory4_day"] = "factory",
-                ["factory4_night"] = "factory",
-                ["factory_day"] = "factory",
-                ["factory_night"] = "factory",
-                ["interchange"] = "interchange",
-                ["shopping_mall"] = "interchange",
-                ["laboratory"] = "the-lab",
-                ["labyrinth"] = "the-labyrinth",
-                ["lighthouse"] = "lighthouse",
-                ["rezervbase"] = "reserve",
-                ["shoreline"] = "shoreline",
-                ["city"] = "streets-of-tarkov",
-                ["tarkovstreets"] = "streets-of-tarkov",
-                ["tarkov streets"] = "streets-of-tarkov",
-                ["terminal"] = "terminal",
-                ["woods"] = "woods",
-                ["sandbox"] = "ground-zero",
-                ["sandbox_high"] = "ground-zero",
-                ["sandbox_start"] = "ground-zero",
-                ["sandbox_sl"] = "ground-zero"
-            };
-
-        private static IReadOnlyDictionary<string, string> remoteAliases = new Dictionary<string, string>();
-        internal static void SetRemoteAliases(IReadOnlyDictionary<string, string> aliases) =>
-            Volatile.Write(ref remoteAliases, new Dictionary<string, string>(aliases, StringComparer.OrdinalIgnoreCase));
-        internal static string NormalizeAlias(string value) => value.Trim().Replace("_preset", "", StringComparison.OrdinalIgnoreCase).ToLowerInvariant();
-
         public static RaidState Parse(string text)
         {
             var map = FindMap(text);
@@ -77,21 +46,7 @@ namespace where_am_i.Services
             return location;
         }
 
-        public static string? FindMap(string text)
-        {
-            foreach (var regex in new[] { SceneRegex(), BundleRegex(), LocationsRegex(), LocationRegex() })
-            {
-                var matches = regex.Matches(text);
-                if (matches.Count == 0)
-                    continue;
-
-                var normalized = NormalizeMap(matches[^1].Groups[1].Value);
-                if (normalized is not null)
-                    return normalized;
-            }
-
-            return null;
-        }
+        public static string? FindMap(string text) => FindRawMap(text);
 
         public static string? FindRawMap(string text)
         {
@@ -103,13 +58,6 @@ namespace where_am_i.Services
                 if (raw.Length is > 0 and <= 128 && !raw.Any(char.IsControl)) return raw;
             }
             return null;
-        }
-
-        private static string? NormalizeMap(string value)
-        {
-            var key = NormalizeAlias(value);
-            if (Volatile.Read(ref remoteAliases).TryGetValue(key, out var remote)) return remote;
-            return MapAliases.TryGetValue(key, out var map) ? map : null;
         }
 
         private static DateTimeOffset? FindLastTimestamp(string text, string marker)

@@ -17,22 +17,24 @@ spec.loader.exec_module(replay)
 class RaidLogFixturesTests(unittest.TestCase):
     def test_fixture_evidence_matches_expected_raids(self):
         expected = json.loads((replay.FIXTURES / 'expected.json').read_text())
-        aliases = {'bigmap': 'customs', 'woods': 'woods', 'shoreline': 'shoreline', 'city': 'streets-of-tarkov'}
+        aliases = {'bigmap': 'customs', 'woods': 'woods', 'shoreline': 'shoreline', 'city': 'streets-of-tarkov', 'rezerv_base': 'reserve'}
         for scenario, raids in expected.items():
             with self.subTest(scenario=scenario):
                 observed = []
                 current = None
+                raw_map = None
                 timer = None
                 for _, _, _, line in replay.read_events(replay.FIXTURES / scenario):
                     if 'scene preset path:' in line:
-                        current = aliases[re.search(r'rcid:(\w+)\.scenespreset', line)[1]]
+                        raw_map = re.search(r'rcid:(\w+)\.scenespreset', line, re.IGNORECASE)[1]
+                        current = aliases[raw_map.lower()]
                         timer = None
                     elif 'GameTimer utcNow:' in line:
                         values = re.search(r'utcNow:(.*?) start:.*? escape:(.*?) PastTime:', line)
                         now, end = [datetime.strptime(v, '%m/%d/%Y %H:%M:%S') for v in values.groups()]
                         timer = int((end - now).total_seconds())
                     elif '|GameStarted:' in line:
-                        observed.append({'map': current, 'remaining_seconds': timer})
+                        observed.append({'map': current, 'remaining_seconds': timer, 'raw_map': raw_map})
                     else:
                         self.fail('Unexpected fixture content (only map/start/timer lines allowed)')
                 self.assertEqual(observed, raids)

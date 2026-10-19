@@ -19,7 +19,7 @@ internal static class FileReadingChecks
             var reader = new TarkovLogSessionReader(directory, zone);
             File.WriteAllText(app, string.Join('\n', apps[..2]) + "\n");
             var session = await reader.ReadAsync();
-            check(session.Map == "customs" && session.StartedAt.HasValue && session.Timer is null, "Missing output is allowed");
+            check(session.Map == "bigmap" && session.StartedAt.HasValue && session.Timer is null, "Missing output is allowed");
             File.WriteAllText(output, timers[0] + "\n");
             session = await reader.ReadAsync();
             check(session.Timer?.RemainingAtObservation.TotalMinutes == 35, "Late output creation recovered");
@@ -103,7 +103,7 @@ internal static class FileReadingChecks
             selected = otherApp;
             monitor.Refresh();
             detected = await received.Task.WaitAsync(TimeSpan.FromSeconds(10));
-            check(detected.Map == "customs" && detected.Timer is null, "Monitor switches execution and clears timer");
+            check(detected.Map == "bigmap" && detected.Timer is null, "Monitor switches execution and clears timer");
             received = new(TaskCreationOptions.RunContinuationsAsynchronously);
             selected = null;
             detected = await received.Task.WaitAsync(TimeSpan.FromSeconds(10));

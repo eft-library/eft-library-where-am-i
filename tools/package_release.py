@@ -24,11 +24,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--dotnet', default='dotnet', help='Path to .NET 10 SDK executable')
     parser.add_argument('--version', default='4.0.0', help='2-4 numeric components')
+    parser.add_argument('--skip-tests', action='store_true', help='Package sources already validated in this session without repeating tests')
     args = parser.parse_args()
     if not re.fullmatch(r'\d+(?:\.\d+){1,3}', args.version) or any(int(n) > 65534 for n in args.version.split('.')):
         parser.error('version must contain 2-4 numeric components between 0 and 65534')
-    run([args.dotnet, 'run', '--project', 'tests/RaidSessionChecks/RaidSessionChecks.csproj', '-c', 'Release'])
-    run([sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_*.py', '-v'])
+    if not args.skip_tests:
+        run([args.dotnet, 'run', '--project', 'tests/RaidSessionChecks/RaidSessionChecks.csproj', '-c', 'Release'])
+        run([sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_*.py', '-v'])
     artifacts = ROOT / 'artifacts'
     artifacts.mkdir(exist_ok=True)
     name = f'where-am-i-{args.version}-win-x64'
@@ -58,6 +60,7 @@ def main():
             'product': 'where-am-i', 'version': args.version, 'runtime': 'win-x64',
             'created_at': datetime.now(timezone.utc).isoformat(),
             'configuration': 'Release', 'self_contained': True, 'single_file': True,
+            'tests_run_by_packaging_command': not args.skip_tests,
             'ready_to_run': False, 'windows_runtime_verified': False,
             'backend_web_integration_verified': False,
             'files': {str(p.relative_to(payload)).replace(os.sep, '/'): hashlib.sha256(p.read_bytes()).hexdigest()

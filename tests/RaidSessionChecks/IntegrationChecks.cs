@@ -10,10 +10,7 @@ static class IntegrationChecks
         public List<(string Path, string Body)> Sent { get; } = new();
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
         {
-            var path = request.RequestUri!.AbsolutePath;
-            if (path == MapAliasService.Endpoint)
-                return new(HttpStatusCode.OK) { Content = new StringContent("""{"data":{"version":"integration-1","aliases":[{"alias":"futurewoods","map":"woods"}]}}""") };
-            Sent.Add((path, await request.Content!.ReadAsStringAsync(token)));
+            Sent.Add((request.RequestUri!.AbsolutePath, await request.Content!.ReadAsStringAsync(token)));
             return new(HttpStatusCode.OK) { Content = new StringContent("{\"data\":true}") };
         }
     }
@@ -25,38 +22,42 @@ static class IntegrationChecks
         try
         {
             var application = Path.Combine(root, "application_000.log");
-            var app = File.ReadAllLines(Path.Combine(fixtures, "customs-woods/application_000.log"));
-            var timers = File.ReadAllLines(Path.Combine(fixtures, "customs-woods/output_000.log"));
-            File.WriteAllText(application, string.Join('\n', app[2..]).Replace("woods", "futurewoods") + "\n");
-            File.WriteAllText(Path.Combine(root, "output_000.log"), timers[1] + "\n");
+            var app = File.ReadAllLines(Path.Combine(fixtures, "reserve-underscore/application_000.log"));
+            var timers = File.ReadAllLines(Path.Combine(fixtures, "reserve-underscore/output_000.log"));
+            File.WriteAllText(application, app[1] + "\n");
             var handler = new Handler();
             using var client = new HttpClient(handler) { BaseAddress = new Uri("https://test.invalid") };
             var sender = new RaidSessionSender(client, "integration@example.invalid");
             using var monitor = new TarkovLogMonitor(() => new FileInfo(application));
             var first = new TaskCompletionSource<RaidSession>(TaskCreationOptions.RunContinuationsAsynchronously);
-            var resolved = new TaskCompletionSource<RaidSession>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var started = new TaskCompletionSource<RaidSession>(TaskCreationOptions.RunContinuationsAsynchronously);
             monitor.SessionChanged += (_, session) =>
             {
                 first.TrySetResult(session);
-                if (session.Map == "woods" && session.Timer is not null) resolved.TrySetResult(session);
+                if (session.StartedAt is not null && session.Timer is not null) started.TrySetResult(session);
             };
             monitor.Start();
             var initial = await first.Task.WaitAsync(TimeSpan.FromSeconds(10));
-            check(initial.Map is null, "Integration: unknown map remains unknown before alias lookup");
-            var alias = new MapAliasService(client, Path.Combine(root, "aliases.json"));
-            check((await alias.RefreshAsync()).Updated, "Integration: server snapshot supplies new map alias");
-            monitor.Refresh();
-            var session = await resolved.Task.WaitAsync(TimeSpan.FromSeconds(10));
-            check(session.StartedAt is not null && session.Timer is not null, "Integration: alias refresh reparses existing log and correlates timer");
+            check(initial.Map == "Rezerv_Base" && initial.StartedAt is null, "Integration: raw Reserve alias detected during loading without dictionaries");
+            check((await sender.SendLatestAsync(initial)).Outcome == SendOutcome.Success, "Integration: loading sends API before GameStarted");
+            using (var json = JsonDocument.Parse(handler.Sent[0].Body))
+                check(json.RootElement.GetProperty("map").GetString() == "Rezerv_Base" && !json.RootElement.GetProperty("is_active").GetBoolean(),
+                    "Integration: loading payload preserves original case and underscore");
+            File.WriteAllText(Path.Combine(root, "output_000.log"), timers[0] + "\n");
+            File.AppendAllText(application, app[2] + "\n");
+            var session = await started.Task.WaitAsync(TimeSpan.FromSeconds(10));
             var sent = await sender.SendLatestAsync(session);
-            check(sent.Outcome == SendOutcome.Success && sent.IncludesTimer, "Integration: reparsed raid and timer reach fake API");
-            using (var json = JsonDocument.Parse(handler.Sent.Single().Body))
+            check(sent.Outcome == SendOutcome.Success && sent.IncludesTimer, "Integration: raw alias and timer reach fake API together");
+            using (var json = JsonDocument.Parse(handler.Sent[1].Body))
             {
                 var data = json.RootElement;
-                check(data.GetProperty("map").GetString() == "woods" && data.GetProperty("raid_ends_at").GetDateTimeOffset() == session.Timer!.EndsAt,
-                    "Integration: map and timer payload agree with monitor state");
-                check(!handler.Sent.Single().Body.Contains(root) && data.GetProperty("session_id").GetString()?.Length == 64,
+                check(data.GetProperty("map").GetString() == "Rezerv_Base" && data.GetProperty("raid_ends_at").GetDateTimeOffset() == session.Timer!.EndsAt,
+                    "Integration: transmission preserves log map and timer values without client alias resolution");
+                check(!handler.Sent[1].Body.Contains(root) && data.GetProperty("session_id").GetString()?.Length == 64,
                     "Integration: local execution path is hashed before transmission");
+                using var loading = JsonDocument.Parse(handler.Sent[0].Body);
+                check(loading.RootElement.GetProperty("session_id").GetString() == data.GetProperty("session_id").GetString(),
+                    "Integration: loading and active state share the same identity");
             }
             var screenshot = Path.Combine(root, "2026-10-19_1.0,2.0,3.0_0.png");
             File.WriteAllBytes(screenshot, new byte[] { 1 });
@@ -67,10 +68,6 @@ static class IntegrationChecks
                     "Integration: screenshot API retains filename-only contract");
             monitor.Stop();
         }
-        finally
-        {
-            TarkovLogParser.SetRemoteAliases(new Dictionary<string, string>());
-            Directory.Delete(root, true);
-        }
+        finally { Directory.Delete(root, true); }
     }
 }

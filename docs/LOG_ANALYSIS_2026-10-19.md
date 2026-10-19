@@ -180,3 +180,17 @@ INSERT INTO where_am_i_map_aliases (alias, map_slug)
 VALUES ('city', 'streets-of-tarkov')
 ON CONFLICT DO NOTHING;
 ```
+
+## 추가 샘플: 15:17 Reserve 이름의 밑줄
+
+15:04:54 실행의 application 로그에는 15:17:17.518 city 로딩 뒤 15:17:57.065 `maps/rezerv_base_preset.bundle rcid:Rezerv_Base.scenespreset.asset`가 기록됐다. 이후 15:19:19.318 GameStarted가 있으므로 해당 시작은 Reserve다. output의 15:19:19.168 GameTimer는 UTC 06:19:18~06:59:18로 관측 당시 40분이다.
+
+기존 별칭 rezervbase와 실제 rezerv_base는 밑줄 유무가 달라 매핑되지 않았다. 새 별칭을 추가하고 원본 시각·대소문자를 유지한 최소 fixture를 추가했다. 원본 전송 코드에서는 별칭이 없어도 Rezerv_Base를 map에 보내므로, DB requested_map까지 null인 당시 요청은 별칭 누락만으로 설명되지 않는다. 실행 파일·원본 HTTP 요청과 서버 처리의 대조가 필요하다.
+
+## 최종 맵 처리 변경: 로그 이름 그대로 전송
+
+사용자 요청에 따라 클라이언트 별칭 딕셔너리·원격 목록 조회·캐시를 제거했다. 현재 tracker와 API map은 bigmap·city·Rezerv_Base 등 로그 토큰 그대로다. 원래 대소문자와 밑줄을 보존하며 별칭 처리는 백엔드 단일 책임으로 옮겼다. 로그에서 토큰을 찾지 못한 경우에만 null이다.
+
+시작·유효 GameTimer가 있으면 로컬 매핑 여부에 관계없이 함께 전달한다. 원본 필드를 보내기 위해 기존 타이머 검증을 무시하지 않는다. 백엔드의 요청 모델·서비스를 읽어 원본 map을 받고 서버에서 정식 맵으로 정규화하는 흐름을 확인했다. 미등록 타이머 요청의 422 동작은 API 요구사항과 검증표에 명시했다. 백엔드는 수정하지 않았다.
+
+정제 fixture에 canonical map 외 raw_map 기대값을 추가했고 클라이언트 검사는 raw_map과 실제 대소문자를 확인한다. 가짜 HTTP 통합 검사는 Reserve 로딩 요청에서 Rezerv_Base를 먼저 전송하고 같은 session_id로 시작·타이머를 보내는지 확인한다. 일반 내 위치 찾기 진입점을 사용하므로 클라이언트 지도별 매핑을 다시 만들지 않는다.

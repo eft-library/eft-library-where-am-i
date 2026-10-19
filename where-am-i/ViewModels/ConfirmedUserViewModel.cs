@@ -27,8 +27,6 @@ namespace where_am_i.ViewModels
             BaseAddress = HttpClient.BaseAddress,
             Timeout = TimeSpan.FromSeconds(10)
         };
-        private readonly MapAliasService mapAliases = new(VersionHttpClient,
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "EFTLibrary", "where-am-i", "map-aliases.json"));
         private readonly VersionCheckService versionChecks = new(VersionHttpClient);
         private bool isCheckingVersion;
         private Uri? updateDownloadUrl;
@@ -208,9 +206,7 @@ namespace where_am_i.ViewModels
             };
             pathRefreshTimer.Tick += OnPathRefreshTimerTick;
 
-            mapAliases.LoadCache();
             StartMonitoring();
-            _ = RefreshMapAliasesAsync();
             _ = ReportSavedCustomPathsAsync();
             _ = CheckVersionAsync();
 
@@ -228,17 +224,6 @@ namespace where_am_i.ViewModels
                     preferencesService.MarkWelcomeShown();
                 });
             }
-        }
-
-        private async Task RefreshMapAliasesAsync()
-        {
-            var token = lifetimeCancellation.Token;
-            var result = await mapAliases.RefreshAsync(token);
-            if (isDisposed || token.IsCancellationRequested) return;
-            if (result.Updated) logMonitor.Refresh();
-            AddActivity("맵 별칭", result.Updated
-                ? (result.CacheSaved ? "맵 별칭 갱신 완료" : "맵 별칭 적용 완료 · 캐시 저장 실패")
-                : "맵 별칭 조회 실패 · 기존 캐시 또는 내장 별칭 사용", !result.Updated || !result.CacheSaved);
         }
 
         private async Task CheckVersionAsync()
@@ -484,13 +469,13 @@ namespace where_am_i.ViewModels
                 var previous = displayedSession;
                 displayedSession = session;
                 CurrentMap = session.Map;
-                var mapLabel = session.Map ?? (session.RawMap is not null ? $"미등록 지도 ({session.RawMap})" : "맵 확인 중");
+                var mapLabel = session.Map ?? "맵 확인 중";
                 RaidStatus = session.StartedAt.HasValue ? $"레이드 시작 감지 · {mapLabel}"
                     : session.LoadingAt is null ? "레이드 대기 중" : $"맵 로딩 중 · {mapLabel}";
                 CurrentLogDirectory = string.IsNullOrWhiteSpace(session.SourceSession)
                     ? "로그 실행 폴더 미확인" : session.SourceSession;
-                if ((session.Map is not null || session.RawMap is not null) && (previous is null || previous.SourceSession != session.SourceSession ||
-                    previous.LoadingAt != session.LoadingAt || previous.Map != session.Map || previous.RawMap != session.RawMap))
+                if (session.Map is not null && (previous is null || previous.SourceSession != session.SourceSession ||
+                    previous.LoadingAt != session.LoadingAt || previous.Map != session.Map))
                     AddActivity("레이드", $"맵 로딩 감지 · {mapLabel}");
                 if (session.StartedAt.HasValue && (previous is null || previous.SourceSession != session.SourceSession ||
                     previous.StartedAt != session.StartedAt))

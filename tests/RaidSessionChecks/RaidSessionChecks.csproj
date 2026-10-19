@@ -22,7 +22,6 @@
     <Compile Include="../../where-am-i/Services/PathReportService.cs" Link="Services/PathReportService.cs" />
     <Compile Include="../../where-am-i/Services/ReportedPathPrivacy.cs" Link="Services/ReportedPathPrivacy.cs" />
     <Compile Include="../../where-am-i/Services/AppVersionInfo.cs" Link="Services/AppVersionInfo.cs" />
-    <Compile Include="../../where-am-i/Services/MapAliasService.cs" Link="Services/MapAliasService.cs" />
     <Compile Include="../../where-am-i/Services/VersionCheckService.cs" Link="Services/VersionCheckService.cs" />
     <Compile Include="../../where-am-i/Services/LatestJsonSender.cs" Link="Services/LatestJsonSender.cs" />
     <Compile Include="../../where-am-i/Services/ScreenshotLocationSender.cs" Link="Services/ScreenshotLocationSender.cs" />

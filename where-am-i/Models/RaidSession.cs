@@ -15,7 +15,6 @@ namespace where_am_i.Models
         string? Map,
         DateTimeOffset? LoadingAt,
         DateTimeOffset? StartedAt,
-        RaidTimer? Timer,
-        string? RawMap = null
+        RaidTimer? Timer
     );
 }

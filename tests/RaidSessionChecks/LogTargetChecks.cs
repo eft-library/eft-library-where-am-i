@@ -94,7 +94,7 @@ internal static class LogTargetChecks
             monitor.SessionChanged += (_, session) => { if (accept(session)) received.TrySetResult(session); };
             monitor.Start();
             var state = await received.Task.WaitAsync(TimeSpan.FromSeconds(10));
-            check(state.Map == "customs" && state.Timer is not null, "Real target selection restores initial raid");
+            check(state.Map == "bigmap" && state.Timer is not null, "Real target selection restores initial raid");
             received = new(TaskCreationOptions.RunContinuationsAsynchronously);
             var liveNext = Session(liveRoot, "log_2026.10.19_9-00-00_1.2.5");
             state = await received.Task.WaitAsync(TimeSpan.FromSeconds(10));

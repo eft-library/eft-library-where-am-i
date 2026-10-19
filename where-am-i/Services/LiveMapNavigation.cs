@@ -11,6 +11,8 @@ namespace where_am_i.Services
         public static bool IsKnownMap(string map) => Maps.Contains(map);
 
         public static string GetUrl(string? map) =>
-            "https://eftlibrary.com/live-map/" + (map is not null && Maps.Contains(map) ? map : "customs");
+            map is not null && Maps.Contains(map)
+                ? "https://eftlibrary.com/live-map/" + map
+                : "https://eftlibrary.com/live-map";
     }
 }

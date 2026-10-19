@@ -48,7 +48,7 @@ namespace where_am_i.Services
                     next = new(at, 1, null, new(observed, started, ends));
             }
             else if (line.Contains("|application|scene preset path:", StringComparison.Ordinal))
-                next = new(at, 0, TarkovLogParser.FindMap(line), null, TarkovLogParser.FindRawMap(line));
+                next = new(at, 0, TarkovLogParser.FindRawMap(line), null);
             else if (line.Contains("|application|GameStarted:", StringComparison.Ordinal))
                 next = new(at, 2, null, null);
 
@@ -61,7 +61,7 @@ namespace where_am_i.Services
             {
                 var timestamp = new DateTimeOffset(item.At, logTimeZone.GetUtcOffset(item.At));
                 if (item.Kind == 0)
-                    state = new(sourceSession, item.Map, timestamp, null, null, item.RawMap);
+                    state = new(sourceSession, item.Map, timestamp, null, null);
                 else if (item.Kind == 1 && state.LoadingAt.HasValue)
                     state = state with { Timer = item.Timer };
                 else if (item.Kind == 2)
@@ -78,7 +78,7 @@ namespace where_am_i.Services
                 CultureInfo.InvariantCulture,
                 DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out timestamp);
 
-        private sealed record LogEvent(DateTime At, int Kind, string? Map, RaidTimer? Timer, string? RawMap = null);
+        private sealed record LogEvent(DateTime At, int Kind, string? Map, RaidTimer? Timer);
 
         [GeneratedRegex(@"\|output\|GameTimer utcNow:(\d{2}/\d{2}/\d{4} \d{2}:\d{2}:\d{2}) start:(\d{2}/\d{2}/\d{4} \d{2}:\d{2}:\d{2}) escape:(\d{2}/\d{2}/\d{4} \d{2}:\d{2}:\d{2}) PastTime:")]
         private static partial Regex TimerRegex();

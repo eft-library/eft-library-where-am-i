@@ -57,7 +57,7 @@ internal static class ActivityChecks
         check(new ActivityHistory().Entries.Count == 0, "New app session starts without persisted personal activity");
         check(LiveMapNavigation.GetUrl("woods") == "https://eftlibrary.com/live-map/woods", "Woods opens the detected map");
         check(LiveMapNavigation.GetUrl("shoreline") == "https://eftlibrary.com/live-map/shoreline", "Shoreline opens the detected map");
-        foreach (var unknown in new[] { null, "", "unknown", "https://example.invalid", "../settings" })
-            check(LiveMapNavigation.GetUrl(unknown) == "https://eftlibrary.com/live-map/customs", "Unknown map uses existing default");
+        foreach (var unknown in new[] { null, "", "unknown", "city", "Rezerv_Base", "https://example.invalid", "../settings" })
+            check(LiveMapNavigation.GetUrl(unknown) == "https://eftlibrary.com/live-map", "Raw or unknown map opens live-map entry for server-driven navigation");
     }
 }

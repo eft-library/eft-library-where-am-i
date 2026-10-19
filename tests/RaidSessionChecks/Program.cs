@@ -31,7 +31,7 @@ foreach (var scenario in expectations.RootElement.EnumerateObject())
         if (entry.Line.Contains("|GameStarted:"))
         {
             var expected = scenario.Value[index++];
-            Check(tracker.Current.Map == expected.GetProperty("map").GetString(), scenario.Name + " map");
+            Check(tracker.Current.Map == expected.GetProperty("raw_map").GetString(), scenario.Name + " map");
             var remaining = expected.GetProperty("remaining_seconds");
             Check(tracker.Current.Timer?.RemainingAtObservation.TotalSeconds ==
                 (remaining.ValueKind == JsonValueKind.Null ? (double?)null : remaining.GetDouble()), scenario.Name + " timer");
@@ -70,38 +70,32 @@ var fresh = new TarkovRaidSessionTracker("execution-b", zone);
 Check(fresh.Current.Timer is null && fresh.Current.Map is null, "Execution isolation");
 var unknown = customs[2].Replace("woods", "unrecognized");
 missingWoods.AppendApplicationLine(unknown.Replace("08:38:58.000", "09:00:00.000"));
-Check(missingWoods.Current.Map is null && missingWoods.Current.Timer is null, "Unknown map clears old state");
+Check(missingWoods.Current.Map == "unrecognized" && missingWoods.Current.Timer is null, "Unknown raw map replaces previous map and clears old timer");
 var streets = Lines("streets-city-repeat", "application");
-var loadingCity = Tracker();
-loadingCity.AppendApplicationLine(streets[0]);
-var cityRequest = where_am_i.Models.SendRaidStateRequest.FromSession("test@example.invalid", loadingCity.Current);
-Check(cityRequest.Map == "streets-of-tarkov" && cityRequest.StartedAt is null && !cityRequest.IsActive,
-    "Actual city scene sends Streets map at loading without waiting for GameStarted");
-Check(cityRequest.TimerObservedAt is null && cityRequest.RaidEndsAt is null,
-    "City loading clears prior timer in API snapshot");
-var unmapped = Tracker();
-var rawScene = streets[0].Replace("city", "newcity");
-unmapped.AppendApplicationLine(rawScene);
-var rawLoading = where_am_i.Models.SendRaidStateRequest.FromSession("test@example.invalid", unmapped.Current);
-Check(unmapped.Current.Map is null && unmapped.Current.RawMap == "newcity" && rawLoading.Map == "newcity",
-    "Unregistered scene preserves raw map and sends it at loading instead of null");
-Check(rawLoading.StartedAt is null && rawLoading.RaidEndsAt is null, "Unknown loading has no start or wire timer");
-unmapped.AppendOutputLine(Lines("streets-city-repeat", "output")[0]);
-unmapped.AppendApplicationLine(streets[1]);
-var rawStarted = where_am_i.Models.SendRaidStateRequest.FromSession("test@example.invalid", unmapped.Current);
-Check(rawStarted.Map == "newcity" && rawStarted.IsActive && unmapped.Current.Timer is not null && rawStarted.RaidEndsAt is null,
-    "Unknown map retains timer locally but sends raw name without unsupported timer");
-Check(where_am_i.Models.SendRaidStateRequest.FromSession("test@example.invalid", new("empty", null, null, null, null)).Map is null,
-    "No map observed remains null rather than inventing an alias");
-Check(TarkovLogParser.FindRawMap("rcid:NewCity.scenespreset maps/woods.bundle") == "NewCity",
-    "Raw scene preserves source case and scene priority");
-Check(TarkovLogParser.FindRawMap("maps/newcity_preset.bundle") == "newcity", "Bundle-only source also preserves raw map");
-Check(TarkovLogParser.FindRawMap("unrelated text") is null, "Unrelated log text cannot become raw map");
-Check(where_am_i.Models.SendRaidStateRequest.FromSession("test@example.invalid", loadingCity.Current).Map == "streets-of-tarkov",
-    "Mapped slug still takes precedence over raw alias");
-unmapped.AppendApplicationLine(streets[2]);
-Check(unmapped.Current.Map == "streets-of-tarkov" && unmapped.Current.RawMap == "city" && unmapped.Current.Timer is null,
-    "Next loading replaces raw alias and clears previous timer");
+var rawLoadingTracker = Tracker();
+rawLoadingTracker.AppendApplicationLine(streets[0]);
+var rawLoading = where_am_i.Models.SendRaidStateRequest.FromSession("test@example.invalid", rawLoadingTracker.Current);
+Check(rawLoading.Map == "city" && rawLoading.StartedAt is null && !rawLoading.IsActive && rawLoading.RaidEndsAt is null,
+    "City raw alias is sent at loading instead of canonical slug");
+rawLoadingTracker.AppendOutputLine(Lines("streets-city-repeat", "output")[0]);
+rawLoadingTracker.AppendApplicationLine(streets[1]);
+var cityStarted = where_am_i.Models.SendRaidStateRequest.FromSession("test@example.invalid", rawLoadingTracker.Current);
+Check(cityStarted.Map == "city" && cityStarted.IsActive && cityStarted.RaidEndsAt is not null,
+    "City raw alias and timer are sent together for server mapping");
+var reserveScene = Lines("reserve-underscore", "application")[1];
+Check(TarkovLogParser.FindMap(reserveScene) == "Rezerv_Base", "Reserve source casing and underscore are preserved");
+var reserveLoading = Tracker();
+reserveLoading.AppendApplicationLine(reserveScene);
+Check(where_am_i.Models.SendRaidStateRequest.FromSession("test@example.invalid", reserveLoading.Current).Map == "Rezerv_Base",
+    "Reserve request carries original alias instead of mapped slug");
+var unknownRaw = Tracker();
+unknownRaw.AppendApplicationLine(streets[0].Replace("city", "FutureCity"));
+unknownRaw.AppendOutputLine(Lines("streets-city-repeat", "output")[0]);
+unknownRaw.AppendApplicationLine(streets[1]);
+var unknownRequest = where_am_i.Models.SendRaidStateRequest.FromSession("test@example.invalid", unknownRaw.Current);
+Check(unknownRequest.Map == "FutureCity" && unknownRequest.RaidEndsAt is not null, "No local whitelist blocks a new raw map or its timer");
+Check(TarkovLogParser.FindRawMap("unrelated text") is null, "No observed map remains null");
+Check(TarkovLogParser.FindRawMap("maps/rezerv_base_preset.bundle") == "rezerv_base", "Bundle fallback extracts map name without resolving it");
 ActivityChecks.Run(Check);
 await FileReadingChecks.Run(root, zone, Check);
 await TransmissionChecks.Run(root, zone, Check);
@@ -109,6 +103,5 @@ await ScreenshotChecks.Run(Check);
 await PathReportChecks.Run(Check);
 await VersionChecks.Run(Check);
 await LogTargetChecks.Run(root, Check);
-await MapAliasChecks.Run(Check);
 await IntegrationChecks.Run(root, Check);
 Console.WriteLine($"PASS: {checks} checks against production C# sources");

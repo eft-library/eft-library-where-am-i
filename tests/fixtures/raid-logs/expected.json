@@ -2,55 +2,72 @@
   "shoreline": [
     {
       "map": "shoreline",
-      "remaining_seconds": 2700
+      "remaining_seconds": 2700,
+      "raw_map": "shoreline"
     }
   ],
   "customs-repeat": [
     {
       "map": "customs",
-      "remaining_seconds": 2100
+      "remaining_seconds": 2100,
+      "raw_map": "bigmap"
     },
     {
       "map": "customs",
-      "remaining_seconds": 2100
+      "remaining_seconds": 2100,
+      "raw_map": "bigmap"
     }
   ],
   "customs": [
     {
       "map": "customs",
-      "remaining_seconds": 2100
+      "remaining_seconds": 2100,
+      "raw_map": "bigmap"
     }
   ],
   "customs-woods": [
     {
       "map": "customs",
-      "remaining_seconds": 2100
+      "remaining_seconds": 2100,
+      "raw_map": "bigmap"
     },
     {
       "map": "woods",
-      "remaining_seconds": 2100
+      "remaining_seconds": 2100,
+      "raw_map": "woods"
     }
   ],
   "customs-no-timer": [
     {
       "map": "customs",
-      "remaining_seconds": null
+      "remaining_seconds": null,
+      "raw_map": "bigmap"
     }
   ],
   "shoreline-no-timer": [
     {
       "map": "shoreline",
-      "remaining_seconds": null
+      "remaining_seconds": null,
+      "raw_map": "shoreline"
     }
   ],
   "streets-city-repeat": [
     {
       "map": "streets-of-tarkov",
-      "remaining_seconds": 2400
+      "remaining_seconds": 2400,
+      "raw_map": "city"
     },
     {
       "map": "streets-of-tarkov",
-      "remaining_seconds": 2400
+      "remaining_seconds": 2400,
+      "raw_map": "city"
+    }
+  ],
+  "reserve-underscore": [
+    {
+      "map": "reserve",
+      "remaining_seconds": 2400,
+      "raw_map": "Rezerv_Base"
     }
   ]
 }
