@@ -10,6 +10,7 @@
 | customs-woods | 10.19 08:22:41 | Customs 35분 → Woods 35분 |
 | customs-no-timer | customs에서 타이머 행 제거 | 맵·시작 유지, 타이머 없음 |
 | shoreline-no-timer | shoreline에서 타이머 행 제거 | 맵·시작 유지, 타이머 없음 |
+| streets-city-repeat | 10.19 13:53:59 실행, 14:48 이후 | city 별칭, Streets 40분 → Streets 40분 |
 
 누락 시나리오 두 개는 실제 기록의 타이머를 제거한 합성 조건이다. 정상 시나리오의 기대값은 expected.json에 보관한다. 여기서 시간은 GameTimer 관측 당시의 잔여 시간이며 실제 게임 화면과의 오차는 아직 검증하지 않았다.
 

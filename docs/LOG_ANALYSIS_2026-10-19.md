@@ -168,3 +168,15 @@ Woods는 타이머 확보·검증 대상이다. Customs·Shoreline은 타이머�
 C# 373개 검사와 Python 3개 테스트가 통과했다. Release·win-x64·self-contained·single-file publish를 완료했으며 ReadyToRun·trimming은 사용하지 않았다. C# 테스트의 Windows Registry 플랫폼 경고 1개는 macOS 호스트에서 발생하며 제품 Release publish에는 경고가 발생하지 않았다.
 
 `tools/package_release.py`로 `artifacts/where-am-i-1.0.0-win-x64.zip`과 SHA-256·파일별 manifest를 생성했다. 실행 파일·사용 가이드·이미지·변경 내용·Windows 검증표만 포함하고 로그·테스트 샘플·사용자 설정은 포함하지 않았다. ZIP 무결성을 검사했다. 12단계의 로컬 산출물 준비는 완료이며 실제 Windows 실행·UI/DPI·게임·백엔드/웹 검증은 [체크리스트](WINDOWS_VALIDATION.md)에 남겼다. 외부 업로드·공개 배포·코드 서명·백신 검사는 수행하지 않았다.
+
+## 추가 샘플: 오후 Streets 별칭 누락
+
+13:53:59 실행 로그에서 14:48:39.426과 14:55:12.634에 `maps/city_preset.bundle rcid:city.scenespreset.asset`가 기록됐다. 레이드 시작은 각각 14:50:47.341, 14:57:40.138이며 GameTimer 관측 당시 잔여 시간은 두 번 모두 40분이다. 기존 내장 별칭은 tarkovstreets만 포함하고 city가 빠져 맵이 null이 되는 입력을 확인했다. `city → streets-of-tarkov`를 추가했다.
+
+원본에서 scene·GameStarted·GameTimer 행만 정제해 streets-city-repeat 시나리오로 추가했다. 로딩 단계의 API 스냅샷에도 정식 맵이 포함되고 시작·타이머는 아직 null인지 검사한다. DB 별칭은 아래 SQL로 운영자가 추가할 수 있으며 이 작업에서 운영 DB는 변경하지 않았다.
+
+```sql
+INSERT INTO where_am_i_map_aliases (alias, map_slug)
+VALUES ('city', 'streets-of-tarkov')
+ON CONFLICT DO NOTHING;
+```

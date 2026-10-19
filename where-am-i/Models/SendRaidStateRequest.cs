@@ -28,7 +28,7 @@ namespace where_am_i.Models
                 id = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(key))).ToLowerInvariant();
             }
             var timer = session.Map is not null && session.StartedAt.HasValue ? session.Timer : null;
-            return new(email, session.Map, session.StartedAt, session.StartedAt.HasValue, 0, id,
+            return new(email, session.Map ?? session.RawMap, session.StartedAt, session.StartedAt.HasValue, 0, id,
                 timer?.ObservedAt.ToUniversalTime(), timer?.EndsAt.ToUniversalTime());
         }
     }

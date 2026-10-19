@@ -484,16 +484,17 @@ namespace where_am_i.ViewModels
                 var previous = displayedSession;
                 displayedSession = session;
                 CurrentMap = session.Map;
-                RaidStatus = session.StartedAt.HasValue ? $"레이드 시작 감지 · {session.Map ?? "맵 확인 중"}"
-                    : session.Map is null ? "레이드 대기 중" : $"맵 로딩 중 · {session.Map}";
+                var mapLabel = session.Map ?? (session.RawMap is not null ? $"미등록 지도 ({session.RawMap})" : "맵 확인 중");
+                RaidStatus = session.StartedAt.HasValue ? $"레이드 시작 감지 · {mapLabel}"
+                    : session.LoadingAt is null ? "레이드 대기 중" : $"맵 로딩 중 · {mapLabel}";
                 CurrentLogDirectory = string.IsNullOrWhiteSpace(session.SourceSession)
                     ? "로그 실행 폴더 미확인" : session.SourceSession;
-                if (session.Map is not null && (previous is null || previous.SourceSession != session.SourceSession ||
-                    previous.LoadingAt != session.LoadingAt || previous.Map != session.Map))
-                    AddActivity("레이드", $"맵 로딩 감지 · {session.Map}");
+                if ((session.Map is not null || session.RawMap is not null) && (previous is null || previous.SourceSession != session.SourceSession ||
+                    previous.LoadingAt != session.LoadingAt || previous.Map != session.Map || previous.RawMap != session.RawMap))
+                    AddActivity("레이드", $"맵 로딩 감지 · {mapLabel}");
                 if (session.StartedAt.HasValue && (previous is null || previous.SourceSession != session.SourceSession ||
                     previous.StartedAt != session.StartedAt))
-                    AddActivity("레이드", $"레이드 시작 감지 · {session.Map ?? "맵 확인 중"}");
+                    AddActivity("레이드", $"레이드 시작 감지 · {mapLabel}");
                 if (session.Timer is not null && (previous is null || previous.Timer != session.Timer ||
                     previous.SourceSession != session.SourceSession || previous.LoadingAt != session.LoadingAt))
                     AddActivity("타이머", $"타이머 기준 확보 · {session.Map ?? "맵 확인 중"}");

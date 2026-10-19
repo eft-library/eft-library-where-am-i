@@ -71,6 +71,37 @@ Check(fresh.Current.Timer is null && fresh.Current.Map is null, "Execution isola
 var unknown = customs[2].Replace("woods", "unrecognized");
 missingWoods.AppendApplicationLine(unknown.Replace("08:38:58.000", "09:00:00.000"));
 Check(missingWoods.Current.Map is null && missingWoods.Current.Timer is null, "Unknown map clears old state");
+var streets = Lines("streets-city-repeat", "application");
+var loadingCity = Tracker();
+loadingCity.AppendApplicationLine(streets[0]);
+var cityRequest = where_am_i.Models.SendRaidStateRequest.FromSession("test@example.invalid", loadingCity.Current);
+Check(cityRequest.Map == "streets-of-tarkov" && cityRequest.StartedAt is null && !cityRequest.IsActive,
+    "Actual city scene sends Streets map at loading without waiting for GameStarted");
+Check(cityRequest.TimerObservedAt is null && cityRequest.RaidEndsAt is null,
+    "City loading clears prior timer in API snapshot");
+var unmapped = Tracker();
+var rawScene = streets[0].Replace("city", "newcity");
+unmapped.AppendApplicationLine(rawScene);
+var rawLoading = where_am_i.Models.SendRaidStateRequest.FromSession("test@example.invalid", unmapped.Current);
+Check(unmapped.Current.Map is null && unmapped.Current.RawMap == "newcity" && rawLoading.Map == "newcity",
+    "Unregistered scene preserves raw map and sends it at loading instead of null");
+Check(rawLoading.StartedAt is null && rawLoading.RaidEndsAt is null, "Unknown loading has no start or wire timer");
+unmapped.AppendOutputLine(Lines("streets-city-repeat", "output")[0]);
+unmapped.AppendApplicationLine(streets[1]);
+var rawStarted = where_am_i.Models.SendRaidStateRequest.FromSession("test@example.invalid", unmapped.Current);
+Check(rawStarted.Map == "newcity" && rawStarted.IsActive && unmapped.Current.Timer is not null && rawStarted.RaidEndsAt is null,
+    "Unknown map retains timer locally but sends raw name without unsupported timer");
+Check(where_am_i.Models.SendRaidStateRequest.FromSession("test@example.invalid", new("empty", null, null, null, null)).Map is null,
+    "No map observed remains null rather than inventing an alias");
+Check(TarkovLogParser.FindRawMap("rcid:NewCity.scenespreset maps/woods.bundle") == "NewCity",
+    "Raw scene preserves source case and scene priority");
+Check(TarkovLogParser.FindRawMap("maps/newcity_preset.bundle") == "newcity", "Bundle-only source also preserves raw map");
+Check(TarkovLogParser.FindRawMap("unrelated text") is null, "Unrelated log text cannot become raw map");
+Check(where_am_i.Models.SendRaidStateRequest.FromSession("test@example.invalid", loadingCity.Current).Map == "streets-of-tarkov",
+    "Mapped slug still takes precedence over raw alias");
+unmapped.AppendApplicationLine(streets[2]);
+Check(unmapped.Current.Map == "streets-of-tarkov" && unmapped.Current.RawMap == "city" && unmapped.Current.Timer is null,
+    "Next loading replaces raw alias and clears previous timer");
 ActivityChecks.Run(Check);
 await FileReadingChecks.Run(root, zone, Check);
 await TransmissionChecks.Run(root, zone, Check);

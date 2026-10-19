@@ -42,5 +42,15 @@
       "map": "shoreline",
       "remaining_seconds": null
     }
+  ],
+  "streets-city-repeat": [
+    {
+      "map": "streets-of-tarkov",
+      "remaining_seconds": 2400
+    },
+    {
+      "map": "streets-of-tarkov",
+      "remaining_seconds": 2400
+    }
   ]
 }

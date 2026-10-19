@@ -17,7 +17,7 @@ spec.loader.exec_module(replay)
 class RaidLogFixturesTests(unittest.TestCase):
     def test_fixture_evidence_matches_expected_raids(self):
         expected = json.loads((replay.FIXTURES / 'expected.json').read_text())
-        aliases = {'bigmap': 'customs', 'woods': 'woods', 'shoreline': 'shoreline'}
+        aliases = {'bigmap': 'customs', 'woods': 'woods', 'shoreline': 'shoreline', 'city': 'streets-of-tarkov'}
         for scenario, raids in expected.items():
             with self.subTest(scenario=scenario):
                 observed = []

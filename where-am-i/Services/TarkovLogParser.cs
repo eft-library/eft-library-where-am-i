@@ -21,6 +21,7 @@ namespace where_am_i.Services
                 ["lighthouse"] = "lighthouse",
                 ["rezervbase"] = "reserve",
                 ["shoreline"] = "shoreline",
+                ["city"] = "streets-of-tarkov",
                 ["tarkovstreets"] = "streets-of-tarkov",
                 ["tarkov streets"] = "streets-of-tarkov",
                 ["terminal"] = "terminal",
@@ -89,6 +90,18 @@ namespace where_am_i.Services
                     return normalized;
             }
 
+            return null;
+        }
+
+        public static string? FindRawMap(string text)
+        {
+            foreach (var regex in new[] { SceneRegex(), BundleRegex(), LocationsRegex(), LocationRegex() })
+            {
+                var matches = regex.Matches(text);
+                if (matches.Count == 0) continue;
+                var raw = matches[^1].Groups[1].Value.Trim();
+                if (raw.Length is > 0 and <= 128 && !raw.Any(char.IsControl)) return raw;
+            }
             return null;
         }
 
