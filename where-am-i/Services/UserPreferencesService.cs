@@ -66,13 +66,6 @@ namespace where_am_i.Services
             Save(preferences);
         }
 
-        public void SaveMonitoringEnabled(bool enabled)
-        {
-            var preferences = Load();
-            preferences.MonitoringEnabled = enabled;
-            Save(preferences);
-        }
-
         public void MarkWelcomeShown()
         {
             var preferences = Load();
@@ -99,7 +92,6 @@ namespace where_am_i.Services
         public int Version { get; set; } = 2;
         public bool RememberEmail { get; set; }
         public string Email { get; set; } = "";
-        public bool MonitoringEnabled { get; set; } = true;
         public bool HasShownWelcome { get; set; }
     }
 }

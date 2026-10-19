@@ -64,9 +64,8 @@ namespace where_am_i.ViewModels
         private string screenshotPathReportStatus = "스크린샷 지정 경로 수집 대기";
         private string logPathReportStatus = "로그 지정 경로 수집 대기";
         private readonly object monitoringLock = new();
-        private CancellationTokenSource monitoringCancellation = new();
+        private readonly CancellationTokenSource monitoringCancellation = new();
         private bool isDisposed;
-        private bool isMonitoringEnabled = true;
         private string watcherStatus = "스크린샷 폴더를 찾는 중입니다.";
         private string logStatus = "EFT 로그 폴더를 찾는 중입니다.";
         private string raidStatus = "레이드 대기 중";
@@ -133,26 +132,6 @@ namespace where_am_i.ViewModels
             }
         }
 
-        public bool IsMonitoringEnabled
-        {
-            get => isMonitoringEnabled;
-            set
-            {
-                if (isMonitoringEnabled == value)
-                    return;
-
-                isMonitoringEnabled = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(MonitoringButtonText));
-                OnPropertyChanged(nameof(MonitoringStatusText));
-                ApplyMonitoringState();
-            }
-        }
-
-        public string MonitoringStatusText => IsMonitoringEnabled ? "감지 켜짐" : "감지 중지";
-
-        public string MonitoringButtonText => IsMonitoringEnabled ? "감지 중지" : "감지 시작";
-
         public string LogStatus
         {
             get => logStatus;
@@ -194,7 +173,6 @@ namespace where_am_i.ViewModels
         public RelayCommand OpenWebCommand { get; }
         public RelayCommand SelectFolderCommand { get; }
         public RelayCommand SelectLogFolderCommand { get; }
-        public RelayCommand ToggleMonitoringCommand { get; }
         public RelayCommand ExitCommand { get; }
 
         public ConfirmedUserViewModel(string userEmail)
@@ -212,11 +190,9 @@ namespace where_am_i.ViewModels
             OpenWebCommand = new RelayCommand(OpenWeb);
             SelectFolderCommand = new RelayCommand(SelectScreenshotFolder);
             SelectLogFolderCommand = new RelayCommand(SelectLogFolder);
-            ToggleMonitoringCommand = new RelayCommand(() => IsMonitoringEnabled = !IsMonitoringEnabled);
             ExitCommand = new RelayCommand(ExitApp);
 
             var preferences = preferencesService.Load();
-            isMonitoringEnabled = preferences.MonitoringEnabled;
 
             logMonitor.StatusChanged += OnLogStatusChanged;
             logMonitor.SessionChanged += OnRaidSessionChanged;
@@ -228,7 +204,7 @@ namespace where_am_i.ViewModels
             pathRefreshTimer.Tick += OnPathRefreshTimerTick;
 
             mapAliases.LoadCache();
-            ApplyMonitoringState(savePreference: false);
+            StartMonitoring();
             _ = RefreshMapAliasesAsync();
             _ = ReportSavedCustomPathsAsync();
             _ = CheckVersionAsync();
@@ -363,8 +339,7 @@ namespace where_am_i.ViewModels
             {
                 var selectedPath = ScreenshotPathService.SaveCustomPath(dialog.FolderName);
                 _ = ReportPathAsync(PathReportKind.Screenshot, selectedPath);
-                if (IsMonitoringEnabled)
-                    AddWatcher(selectedPath);
+                AddWatcher(selectedPath);
                 UpdateWatcherStatus();
                 SetLastActivity($"감시 폴더를 등록했습니다: {selectedPath}");
             }
@@ -470,47 +445,14 @@ namespace where_am_i.ViewModels
             }
         }
 
-        private void ApplyMonitoringState(bool savePreference = true)
+        private void StartMonitoring()
         {
-            if (savePreference)
-            {
-                try { preferencesService.SaveMonitoringEnabled(IsMonitoringEnabled); }
-                catch (Exception ex) { SetLastActivity($"감지 설정 저장 오류: {ex.Message}", "설정", true); }
-            }
-
-            if (IsMonitoringEnabled)
-            {
-                lock (monitoringLock)
-                {
-                    if (monitoringCancellation.IsCancellationRequested)
-                    {
-                        monitoringCancellation.Dispose();
-                        monitoringCancellation = new CancellationTokenSource();
-                    }
-                }
-                RaidStatus = "레이드 정보를 확인하는 중";
-                RefreshWatchers();
-                pathRefreshTimer.Start();
-                logMonitor.Start();
-                AddActivity("감지", "스크린샷·로그 감지를 시작했습니다.");
-                return;
-            }
-
-            pathRefreshTimer.Stop();
-            Interlocked.Increment(ref raidTransmissionRevision);
-            lock (monitoringLock) monitoringCancellation.Cancel();
-            screenshotSender.InvalidatePending();
-            ScreenshotTransmissionStatus = "스크린샷 위치 전송 중지";
-            RaidTransmissionStatus = "레이드 정보 전송 중지";
-            logMonitor.Stop();
-            string[] paths;
-            lock (watcherLock)
-                paths = watchers.Keys.ToArray();
-            foreach (var path in paths)
-                RemoveWatcher(path);
-            WatcherStatus = "스크린샷 감지 중지";
-            RaidStatus = "감지 중지 · 마지막 레이드 정보 유지";
-            AddActivity("감지", "스크린샷·로그 감지를 중지했습니다.");
+            // Always start after user confirmation, including upgrades with a legacy paused setting.
+            RaidStatus = "레이드 정보를 확인하는 중";
+            RefreshWatchers();
+            pathRefreshTimer.Start();
+            logMonitor.Start();
+            AddActivity("감지", "스크린샷·로그 감지를 시작했습니다.");
         }
 
         private void OnLogStatusChanged(object? sender, string status) =>
@@ -537,8 +479,7 @@ namespace where_am_i.ViewModels
                 var previous = displayedSession;
                 displayedSession = session;
                 CurrentMap = session.Map;
-                RaidStatus = !IsMonitoringEnabled ? "감지 중지 · 마지막 레이드 정보 유지"
-                    : session.StartedAt.HasValue ? $"레이드 시작 감지 · {session.Map ?? "맵 확인 중"}"
+                RaidStatus = session.StartedAt.HasValue ? $"레이드 시작 감지 · {session.Map ?? "맵 확인 중"}"
                     : session.Map is null ? "레이드 대기 중" : $"맵 로딩 중 · {session.Map}";
                 CurrentLogDirectory = string.IsNullOrWhiteSpace(session.SourceSession)
                     ? "로그 실행 폴더 미확인" : session.SourceSession;
@@ -560,7 +501,7 @@ namespace where_am_i.ViewModels
             CancellationToken cancellationToken;
             lock (monitoringLock)
             {
-                if (isDisposed || !IsMonitoringEnabled) return;
+                if (isDisposed) return;
                 cancellationToken = monitoringCancellation.Token;
             }
             RunOnUiThread(() =>
@@ -706,7 +647,7 @@ namespace where_am_i.ViewModels
             CancellationToken token;
             lock (monitoringLock)
             {
-                if (isDisposed || !IsMonitoringEnabled) return;
+                if (isDisposed) return;
                 token = monitoringCancellation.Token;
             }
             try
@@ -740,7 +681,7 @@ namespace where_am_i.ViewModels
         {
             RunOnUiThread(() =>
             {
-                if (isDisposed || !IsMonitoringEnabled || !screenshotSender.IsCurrent(progress.Revision)) return;
+                if (isDisposed || !screenshotSender.IsCurrent(progress.Revision)) return;
                 ScreenshotTransmissionStatus = progress.Stage switch
                 {
                     ScreenshotStage.WaitingForFile => "스크린샷 저장 완료 대기",

@@ -26,8 +26,19 @@
         <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
                 BorderThickness="1" CornerRadius="10" Margin="24" Padding="24">
             <StackPanel>
-                <Image Width="190" Height="54" Margin="0,0,0,16"
-                       Source="https://image.eftlibrary.com/eftlibrary/tkl_main%2Flogo.png" Stretch="Uniform"/>
+                <Grid Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Image Width="160" Height="46" HorizontalAlignment="Left"
+                           Source="https://image.eftlibrary.com/eftlibrary/tkl_main%2Flogo.png" Stretch="Uniform"/>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
+                        <Button Content="현재 맵 열기" Command="{Binding OpenWebCommand}"
+                                Style="{StaticResource PrimaryButtonStyle}" FontSize="12" Height="36" Padding="12,0" Margin="0,0,8,0"/>
+                        <Button Content="프로그램 종료" Command="{Binding ExitCommand}"
+                                Style="{StaticResource DangerButtonStyle}" FontSize="12" Height="36" Padding="12,0"/>
+                    </StackPanel>
+                </Grid>
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
@@ -36,28 +47,7 @@
                     <Button Grid.Column="1" Content="앱 버전" Click="OpenAppVersion"
                             Style="{StaticResource SecondaryButtonStyle}" Margin="12,0,0,0"/>
                 </Grid>
-                <Grid Margin="0,12,0,16">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <Ellipse Width="8" Height="8" Margin="0,0,8,0">
-                            <Ellipse.Style>
-                                <Style TargetType="Ellipse">
-                                    <Setter Property="Fill" Value="{StaticResource AccentBrush}"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsMonitoringEnabled}" Value="False">
-                                            <Setter Property="Fill" Value="{StaticResource SecondaryTextBrush}"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Ellipse.Style>
-                        </Ellipse>
-                        <TextBlock Text="{Binding MonitoringStatusText}" FontSize="13"/>
-                    </StackPanel>
-                    <Button Grid.Column="1" Content="{Binding MonitoringButtonText}"
-                            Command="{Binding ToggleMonitoringCommand}" Style="{StaticResource SecondaryButtonStyle}"/>
-                </Grid>
+                <TextBlock Text="실행 중 자동 감지" Style="{StaticResource StatusDetailStyle}" Margin="0,8,0,16"/>
 
                 <Border Style="{StaticResource StatusCardStyle}">
                     <StackPanel>
@@ -74,7 +64,7 @@
                             </Grid.ColumnDefinitions>
                             <TextBlock Text="스크린샷 위치" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
                             <Button Grid.Column="1" Content="스크린샷 폴더 선택" Command="{Binding SelectFolderCommand}"
-                                    Style="{StaticResource SecondaryButtonStyle}" Margin="12,0,0,0" FontSize="12" Height="36" Padding="14,0"/>
+                                    Style="{StaticResource FolderButtonStyle}" Margin="12,0,0,0" FontSize="12" Height="36" Padding="14,0"/>
                         </Grid>
                         <TextBlock Text="{Binding WatcherStatus}" Style="{StaticResource StatusDetailStyle}"/>
                         <TextBlock Text="{Binding ScreenshotTransmissionStatus}" Style="{StaticResource StatusDetailStyle}"/>
@@ -103,7 +93,7 @@
                             </Grid.ColumnDefinitions>
                             <TextBlock Text="로그 수집" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
                             <Button Grid.Column="1" Content="로그 폴더 선택" Command="{Binding SelectLogFolderCommand}"
-                                    Style="{StaticResource SecondaryButtonStyle}" Margin="12,0,0,0" FontSize="12" Height="36" Padding="14,0"/>
+                                    Style="{StaticResource FolderButtonStyle}" Margin="12,0,0,0" FontSize="12" Height="36" Padding="14,0"/>
                         </Grid>
                         <TextBlock Text="{Binding LogStatus}" Style="{StaticResource StatusDetailStyle}"/>
                         <Expander Header="로그 경로 보기" Margin="0,12,0,0"
@@ -176,12 +166,6 @@
                     </StackPanel>
                 </Border>
 
-                <WrapPanel Margin="0,4,0,0">
-                    <Button Content="현재 맵 열기" Command="{Binding OpenWebCommand}"
-                            Style="{StaticResource PrimaryButtonStyle}" Margin="0,0,8,8"/>
-                    <Button Content="프로그램 종료" Command="{Binding ExitCommand}"
-                            Style="{StaticResource DangerButtonStyle}" Margin="0,0,0,8"/>
-                </WrapPanel>
             </StackPanel>
         </Border>
     </ScrollViewer>

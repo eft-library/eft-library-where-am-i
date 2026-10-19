@@ -46,26 +46,38 @@
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="Height" Value="42"/>
             <Setter Property="Padding" Value="18,0"/>
-            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="ButtonBorder"
-                                Background="{TemplateBinding Background}"
-                                CornerRadius="6">
-                            <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"/>
-                        </Border>
+                        <Grid x:Name="ButtonRoot">
+                            <Border x:Name="ButtonBorder"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="6">
+                                <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center" RecognizesAccessKey="True"/>
+                            </Border>
+                            <Border x:Name="HoverOverlay" Background="White" CornerRadius="6"
+                                    Opacity="0" IsHitTestVisible="False"/>
+                            <Border x:Name="FocusRing" BorderBrush="#B8D9FF" BorderThickness="2"
+                                    CornerRadius="8" Margin="-3" Opacity="0" IsHitTestVisible="False"/>
+                        </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.86"/>
+                                <Setter TargetName="HoverOverlay" Property="Opacity" Value="0.08"/>
+                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#D5DEE9"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.72"/>
+                                <Setter TargetName="HoverOverlay" Property="Opacity" Value="0.16"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="FocusRing" Property="Opacity" Value="1"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.38"/>
+                                <Setter TargetName="ButtonRoot" Property="Opacity" Value="0.38"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -77,18 +89,28 @@
                TargetType="Button"
                BasedOn="{StaticResource BaseButtonStyle}">
             <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="Foreground" Value="#171A1F"/>
+            <Setter Property="BorderBrush" Value="#FFAA66"/>
         </Style>
 
         <Style x:Key="SecondaryButtonStyle"
                TargetType="Button"
                BasedOn="{StaticResource BaseButtonStyle}">
-            <Setter Property="Background" Value="{StaticResource SurfaceRaisedBrush}"/>
+            <Setter Property="Background" Value="#303A48"/>
+            <Setter Property="BorderBrush" Value="#71839A"/>
         </Style>
 
         <Style x:Key="DangerButtonStyle"
                TargetType="Button"
                BasedOn="{StaticResource BaseButtonStyle}">
-            <Setter Property="Background" Value="{StaticResource DangerBrush}"/>
+            <Setter Property="Background" Value="#48262D"/>
+            <Setter Property="Foreground" Value="#FFCCD0"/>
+            <Setter Property="BorderBrush" Value="#C46875"/>
+        </Style>
+        <Style x:Key="FolderButtonStyle" TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}">
+            <Setter Property="Background" Value="#203B54"/>
+            <Setter Property="Foreground" Value="#D6ECFF"/>
+            <Setter Property="BorderBrush" Value="#649CC6"/>
         </Style>
     </Application.Resources>
 </Application>

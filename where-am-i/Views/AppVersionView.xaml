@@ -31,7 +31,7 @@
             <Button Content="다시 확인" Command="{Binding CheckVersionCommand}"
                     Style="{StaticResource SecondaryButtonStyle}" Margin="0,4,8,0"/>
             <Button Content="다운로드 페이지" Command="{Binding OpenUpdateDownloadCommand}"
-                    Style="{StaticResource SecondaryButtonStyle}" Margin="0,4,8,0"/>
+                    Style="{StaticResource PrimaryButtonStyle}" Margin="0,4,8,0"/>
             <Button Content="닫기" IsCancel="True" IsDefault="True" Click="CloseWindow"
                     Style="{StaticResource SecondaryButtonStyle}" Margin="0,4,0,0"/>
         </WrapPanel>
