@@ -214,7 +214,7 @@ Customs·Shoreline뿐 아니라 Woods에서 타이머를 아직 찾지 못한 �
     "min_supported_version": "1.0.0.0",
     "update_available": true,
     "update_required": false,
-    "download_url": "https://eftlibrary.com/downloads/where-am-i",
+    "download_url": "https://github.com/eft-library/eft-library-where-am-i/releases/tag/live-map-v2",
     "release_notes": "변경 내용"
   }
 }
@@ -225,7 +225,7 @@ Customs·Shoreline뿐 아니라 Woods에서 타이머를 아직 찾지 못한 �
 - 서버는 요청의 current_version을 그대로 또는 숫자 의미가 같은 값으로 응답한다. 다른 현재 버전에 대한 응답은 클라이언트가 거부한다.
 - `update_available`은 current < latest, `update_required`는 current < min_supported여야 한다. min_supported <= latest여야 한다. 문자열 정렬로 비교하지 않는다.
 - 현재 버전이 공개 최신보다 높다면 update_available=false, update_required=false로 응답할 수 있다. 클라이언트 문구는 “사용 가능한 업데이트가 없습니다”이며 현재 버전이 공개 최신과 정확히 같다고 단정하지 않는다.
-- 업데이트가 있으면 유효한 download_url이 필요하다. 현재 클라이언트는 HTTPS·기본 443 포트·사용자 정보 없는 `eftlibrary.com` 또는 `www.eftlibrary.com` 주소만 연다. CDN·GitHub 등 다른 배포 호스트를 쓸 때는 클라이언트 허용 호스트를 먼저 확장한다.
+- 업데이트가 있으면 유효한 download_url이 필요하다. 공식 배포는 GitHub를 사용한다. 현재 소스는 HTTPS·기본 443 포트·사용자 정보 없는 `github.com/eft-library/eft-library-where-am-i/releases`와 그 하위 릴리스·asset 주소를 허용한다. 기존 `eftlibrary.com`·`www.eftlibrary.com` 주소는 호환성을 위해 유지한다. 다른 저장소·호스트는 거부한다. 이 변경 전 exe는 GitHub를 거부하므로 백엔드 재배포와 함께 수정된 exe를 다시 빌드·배포해야 한다.
 - 업데이트가 없으면 download_url은 null·생략·빈 문자열을 허용한다. 업데이트가 없을 때 다운로드 버튼은 비활성화한다.
 - release_notes는 일반 텍스트 최대 4,000자이며 null·생략을 허용한다. HTML·스크립트로 렌더링하지 않는다.
 - HTTP 오류, 잘못된 JSON·필드 타입, 모순된 버전/플래그, 지원하지 않는 다운로드 URL은 클라이언트에서 확인 실패로 처리한다. 실패를 “최신”으로 표시하지 않는다.

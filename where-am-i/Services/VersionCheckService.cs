@@ -82,7 +82,15 @@ namespace where_am_i.Services
             uri = null;
             if (value.Length > 2048 || !Uri.TryCreate(value, UriKind.Absolute, out var parsed) ||
                 parsed.Scheme != Uri.UriSchemeHttps || !parsed.IsDefaultPort || parsed.UserInfo.Length != 0 ||
-                parsed.Host is not ("eftlibrary.com" or "www.eftlibrary.com")) return false;
+                value.Contains('\\') || value.Any(c => char.IsWhiteSpace(c) || char.IsControl(c))) return false;
+            var path = Uri.UnescapeDataString(parsed.AbsolutePath);
+            const string releasePath = "/eft-library/eft-library-where-am-i/releases";
+            var githubRelease = parsed.Host == "github.com" &&
+                (path.Equals(releasePath, StringComparison.OrdinalIgnoreCase) ||
+                 path.StartsWith(releasePath + "/", StringComparison.OrdinalIgnoreCase)) &&
+                !path.Split('/').Any(part => part is "." or "..") &&
+                !path.Contains('\\') && !path.Any(char.IsControl);
+            if (parsed.Host is not ("eftlibrary.com" or "www.eftlibrary.com") && !githubRelease) return false;
             uri = parsed;
             return true;
         }

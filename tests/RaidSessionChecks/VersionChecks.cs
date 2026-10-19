@@ -131,5 +131,12 @@ internal static class VersionChecks
             check((await new VersionCheckService(client).CheckAsync(new("not a version"))).Outcome == VersionCheckOutcome.Failed,
                 "Unsupported current version never sent");
         check(VersionCheckService.TryOfficialDownload("https://www.eftlibrary.com/download", out _), "Official www download allowed");
+        check(VersionCheckService.TryOfficialDownload("https://github.com/eft-library/eft-library-where-am-i/releases/tag/live-map-v2", out _), "Official GitHub release allowed");
+        check(VersionCheckService.TryOfficialDownload("https://github.com/eft-library/eft-library-where-am-i/releases/download/live-map-v2/where-am-i.exe", out _), "Official GitHub release asset allowed");
+        foreach (var rejected in new[] { "https://github.com/other/repository/releases/tag/v1",
+                                        "https://github.com/eft-library/eft-library-where-am-i/issues",
+                                        "https://github.com.evil.invalid/eft-library/eft-library-where-am-i/releases/tag/v1" })
+            check(!VersionCheckService.TryOfficialDownload(rejected, out _), "Unofficial GitHub URL rejected");
+
     }
 }
