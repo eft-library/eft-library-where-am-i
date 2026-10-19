@@ -5,7 +5,6 @@ using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Threading;
-using System.Windows.Data;
 using Microsoft.Win32;
 using where_am_i.Commands;
 using where_am_i.Models;
@@ -76,8 +75,14 @@ namespace where_am_i.ViewModels
 
         public ObservableCollection<string> WatchingPaths { get; } = new();
         public ReadOnlyObservableCollection<ActivityEntry> Activities => activityHistory.Entries;
-        public ICollectionView ActivityView { get; }
-        public bool HasVisibleActivities => !ActivityView.IsEmpty;
+        public ReadOnlyObservableCollection<ActivityEntry> VisibleActivities => activityHistory.VisibleEntries;
+        public bool HasVisibleActivities => VisibleActivities.Count > 0;
+        public string ActivityCountText => ShowOnlyErrors
+            ? $"오류 {Activities.Count(entry => entry.IsError)}개 표시 · 전체 {Activities.Count}개 / 최대 100개"
+            : $"전체 {Activities.Count}개 / 최대 100개";
+        public string ActivityEmptyText => ShowOnlyErrors
+            ? "최근 100개 활동 중 오류가 없습니다. 전체 기록은 ‘오류만’을 해제해 확인하세요."
+            : "아직 기록된 활동이 없습니다.";
         public bool ShowOnlyErrors
         {
             get => showOnlyErrors;
@@ -86,8 +91,10 @@ namespace where_am_i.ViewModels
                 if (showOnlyErrors == value) return;
                 showOnlyErrors = value;
                 OnPropertyChanged();
-                ActivityView.Refresh();
+                activityHistory.SetErrorsOnly(showOnlyErrors);
                 OnPropertyChanged(nameof(HasVisibleActivities));
+                OnPropertyChanged(nameof(ActivityCountText));
+                OnPropertyChanged(nameof(ActivityEmptyText));
             }
         }
         public string? CurrentMap
@@ -182,8 +189,6 @@ namespace where_am_i.ViewModels
             screenshotSender = new ScreenshotLocationSender(HttpClient, email);
             pathReports = new PathReportService(HttpClient, CurrentAppVersion);
             screenshotSender.ProgressChanged += OnScreenshotProgress;
-            ActivityView = CollectionViewSource.GetDefaultView(Activities);
-            ActivityView.Filter = entry => !ShowOnlyErrors || entry is ActivityEntry { IsError: true };
 
             CheckVersionCommand = new RelayCommand(() => _ = CheckVersionAsync(), () => !isCheckingVersion && !isDisposed);
             OpenUpdateDownloadCommand = new RelayCommand(OpenUpdateDownload, () => updateDownloadUrl is not null && !isCheckingVersion && !isDisposed);
@@ -727,6 +732,7 @@ namespace where_am_i.ViewModels
             activityHistory.Add(category, message, isError);
             LastActivity = message;
             OnPropertyChanged(nameof(HasVisibleActivities));
+            OnPropertyChanged(nameof(ActivityCountText));
         }
 
         private static void RunOnUiThread(Action action)

@@ -115,12 +115,13 @@
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Text="최근 활동 · 최대 100개" FontSize="14" FontWeight="SemiBold"/>
+                            <TextBlock Text="최근 활동" FontSize="14" FontWeight="SemiBold"/>
                             <CheckBox Grid.Column="1" Content="오류만" IsChecked="{Binding ShowOnlyErrors}"
                                       Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center"/>
                         </Grid>
+                        <TextBlock Text="{Binding ActivityCountText}" Style="{StaticResource StatusDetailStyle}"/>
                         <TextBlock Text="{Binding LastActivity}" Style="{StaticResource StatusDetailStyle}" Margin="0,8,0,8"/>
-                        <TextBlock Text="표시할 활동이 없습니다." FontSize="12" Margin="0,8,0,0">
+                        <TextBlock Text="{Binding ActivityEmptyText}" TextWrapping="Wrap" FontSize="12" Margin="0,8,0,0">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}"/>
@@ -133,10 +134,12 @@
                                 </Style>
                             </TextBlock.Style>
                         </TextBlock>
-                        <ListBox ItemsSource="{Binding ActivityView}" MaxHeight="240" Margin="0,4,0,0"
+                        <ListBox ItemsSource="{Binding VisibleActivities}" MaxHeight="240" Margin="0,4,0,0"
                                  Background="Transparent" BorderThickness="0" Foreground="{StaticResource PrimaryTextBrush}"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                  ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                 ScrollViewer.CanContentScroll="False"
+                                 VirtualizingPanel.IsVirtualizing="False"
                                  HorizontalContentAlignment="Stretch">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
