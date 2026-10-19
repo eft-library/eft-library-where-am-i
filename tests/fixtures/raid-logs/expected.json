@@ -1,0 +1,46 @@
+{
+  "shoreline": [
+    {
+      "map": "shoreline",
+      "remaining_seconds": 2700
+    }
+  ],
+  "customs-repeat": [
+    {
+      "map": "customs",
+      "remaining_seconds": 2100
+    },
+    {
+      "map": "customs",
+      "remaining_seconds": 2100
+    }
+  ],
+  "customs": [
+    {
+      "map": "customs",
+      "remaining_seconds": 2100
+    }
+  ],
+  "customs-woods": [
+    {
+      "map": "customs",
+      "remaining_seconds": 2100
+    },
+    {
+      "map": "woods",
+      "remaining_seconds": 2100
+    }
+  ],
+  "customs-no-timer": [
+    {
+      "map": "customs",
+      "remaining_seconds": null
+    }
+  ],
+  "shoreline-no-timer": [
+    {
+      "map": "shoreline",
+      "remaining_seconds": null
+    }
+  ]
+}

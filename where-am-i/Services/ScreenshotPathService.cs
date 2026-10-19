@@ -72,7 +72,7 @@ namespace where_am_i.Services
             return normalizedPath;
         }
 
-        private static string? GetSavedCustomPath()
+        public static string? GetSavedCustomPath()
         {
             try
             {

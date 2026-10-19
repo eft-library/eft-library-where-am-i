@@ -31,6 +31,11 @@ namespace where_am_i.Services
                 ["sandbox_sl"] = "ground-zero"
             };
 
+        private static IReadOnlyDictionary<string, string> remoteAliases = new Dictionary<string, string>();
+        internal static void SetRemoteAliases(IReadOnlyDictionary<string, string> aliases) =>
+            Volatile.Write(ref remoteAliases, new Dictionary<string, string>(aliases, StringComparer.OrdinalIgnoreCase));
+        internal static string NormalizeAlias(string value) => value.Trim().Replace("_preset", "", StringComparison.OrdinalIgnoreCase).ToLowerInvariant();
+
         public static RaidState Parse(string text)
         {
             var map = FindMap(text);
@@ -71,7 +76,7 @@ namespace where_am_i.Services
             return location;
         }
 
-        private static string? FindMap(string text)
+        public static string? FindMap(string text)
         {
             foreach (var regex in new[] { SceneRegex(), BundleRegex(), LocationsRegex(), LocationRegex() })
             {
@@ -89,7 +94,8 @@ namespace where_am_i.Services
 
         private static string? NormalizeMap(string value)
         {
-            var key = value.Trim().Replace("_preset", "", StringComparison.OrdinalIgnoreCase);
+            var key = NormalizeAlias(value);
+            if (Volatile.Read(ref remoteAliases).TryGetValue(key, out var remote)) return remote;
             return MapAliases.TryGetValue(key, out var map) ? map : null;
         }
 

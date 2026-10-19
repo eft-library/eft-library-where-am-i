@@ -14,8 +14,14 @@ namespace where_am_i.Services
 
         public static IReadOnlyCollection<string> FindCandidatePaths()
         {
-            var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var paths = new HashSet<string>(FindAutomaticCandidatePaths(), StringComparer.OrdinalIgnoreCase);
             Add(paths, GetSavedCustomPath());
+            return paths;
+        }
+
+        public static IReadOnlyCollection<string> FindAutomaticCandidatePaths()
+        {
+            var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             Add(paths, Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "Battlestate Games", "EscapeFromTarkov", "Logs"
@@ -36,7 +42,17 @@ namespace where_am_i.Services
             var directory = Path.GetDirectoryName(CustomPathFile)
                 ?? throw new InvalidOperationException("설정 폴더를 확인할 수 없습니다.");
             Directory.CreateDirectory(directory);
-            File.WriteAllText(CustomPathFile, normalized);
+            var temporary = Path.Combine(directory, ".log-path-" + Guid.NewGuid() + ".tmp");
+            try
+            {
+                File.WriteAllText(temporary, normalized);
+                File.Move(temporary, CustomPathFile, overwrite: true);
+            }
+            finally
+            {
+                try { File.Delete(temporary); }
+                catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
+            }
             return normalized;
         }
 
@@ -65,7 +81,14 @@ namespace where_am_i.Services
             return paths;
         }
 
-        private static string? GetSavedCustomPath()
+        internal static string? GetConfiguredCustomPath()
+        {
+            try { return File.ReadAllText(CustomPathFile).Trim(); }
+            catch (FileNotFoundException) { return null; }
+            catch (DirectoryNotFoundException) { return null; }
+        }
+
+        public static string? GetSavedCustomPath()
         {
             try
             {
@@ -83,7 +106,11 @@ namespace where_am_i.Services
                 paths.Add(Normalize(path));
         }
 
-        private static string Normalize(string path) =>
-            Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        private static string Normalize(string path)
+        {
+            var fullPath = Path.GetFullPath(path);
+            return string.Equals(fullPath, Path.GetPathRoot(fullPath), StringComparison.OrdinalIgnoreCase)
+                ? fullPath : fullPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        }
     }
 }

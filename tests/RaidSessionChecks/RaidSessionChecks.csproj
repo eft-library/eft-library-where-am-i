@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../where-am-i/Models/ActivityEntry.cs" Link="Models/ActivityEntry.cs" />
+    <Compile Include="../../where-am-i/Services/ActivityHistory.cs" Link="Services/ActivityHistory.cs" />
+    <Compile Include="../../where-am-i/Services/LiveMapNavigation.cs" Link="Services/LiveMapNavigation.cs" />
+    <Compile Include="../../where-am-i/Models/RaidSession.cs" Link="Models/RaidSession.cs" />
+    <Compile Include="../../where-am-i/Models/SendRaidStateRequest.cs" Link="Models/SendRaidStateRequest.cs" />
+    <Compile Include="../../where-am-i/Models/RaidState.cs" Link="Models/RaidState.cs" />
+    <Compile Include="../../where-am-i/Models/LogLocation.cs" Link="Models/LogLocation.cs" />
+    <Compile Include="../../where-am-i/Services/TarkovLogParser.cs" Link="Services/TarkovLogParser.cs" />
+    <Compile Include="../../where-am-i/Services/TarkovRaidSessionTracker.cs" Link="Services/TarkovRaidSessionTracker.cs" />
+    <Compile Include="../../where-am-i/Services/IncrementalLogReader.cs" Link="Services/IncrementalLogReader.cs" />
+    <Compile Include="../../where-am-i/Services/TarkovLogSessionReader.cs" Link="Services/TarkovLogSessionReader.cs" />
+    <Compile Include="../../where-am-i/Services/TarkovLogTargetSelector.cs" Link="Services/TarkovLogTargetSelector.cs" />
+    <Compile Include="../../where-am-i/Services/TarkovLogMonitor.cs" Link="Services/TarkovLogMonitor.cs" />
+    <Compile Include="../../where-am-i/Services/PathReportService.cs" Link="Services/PathReportService.cs" />
+    <Compile Include="../../where-am-i/Services/ReportedPathPrivacy.cs" Link="Services/ReportedPathPrivacy.cs" />
+    <Compile Include="../../where-am-i/Services/AppVersionInfo.cs" Link="Services/AppVersionInfo.cs" />
+    <Compile Include="../../where-am-i/Services/MapAliasService.cs" Link="Services/MapAliasService.cs" />
+    <Compile Include="../../where-am-i/Services/VersionCheckService.cs" Link="Services/VersionCheckService.cs" />
+    <Compile Include="../../where-am-i/Services/LatestJsonSender.cs" Link="Services/LatestJsonSender.cs" />
+    <Compile Include="../../where-am-i/Services/ScreenshotLocationSender.cs" Link="Services/ScreenshotLocationSender.cs" />
+    <Compile Include="../../where-am-i/Services/RaidSessionSender.cs" Link="Services/RaidSessionSender.cs" />
+    <Compile Include="../../where-am-i/Services/TarkovLogPathService.cs" Link="Services/TarkovLogPathService.cs" />
+    <Content Include="../fixtures/raid-logs/**/*" Link="fixtures/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

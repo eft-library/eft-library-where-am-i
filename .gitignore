@@ -44,6 +44,10 @@ CodeCoverage/
 .vs/
 *.user
 
+# Python log replay tooling
+__pycache__/
+*.pyc
+
 # MSBuild Binary and Structured Log
 *.binlog
 

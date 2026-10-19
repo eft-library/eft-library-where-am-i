@@ -1,14 +1,11 @@
-using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Text.Json;
-using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Threading;
+using System.Windows.Data;
 using Microsoft.Win32;
 using where_am_i.Commands;
 using where_am_i.Models;
@@ -26,30 +23,89 @@ namespace where_am_i.ViewModels
             Timeout = TimeSpan.FromSeconds(15)
         };
 
-        private static readonly Regex TarkovScreenshotFileNamePattern = new(
-            @"_-?\d+(?:\.\d+)?,\s*-?\d+(?:\.\d+)?,\s*-?\d+(?:\.\d+)?_.*\.(?:png|jpe?g)$",
-            RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase,
-            TimeSpan.FromMilliseconds(100)
-        );
-
+        private static readonly HttpClient VersionHttpClient = new()
+        {
+            BaseAddress = HttpClient.BaseAddress,
+            Timeout = TimeSpan.FromSeconds(10)
+        };
+        private readonly MapAliasService mapAliases = new(VersionHttpClient,
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "EFTLibrary", "where-am-i", "map-aliases.json"));
+        private readonly VersionCheckService versionChecks = new(VersionHttpClient);
+        private bool isCheckingVersion;
+        private Uri? updateDownloadUrl;
+        private string versionCheckStatus = "버전 확인 대기";
+        private string latestVersionText = "최신 버전 미확인";
+        private string lastVersionCheckText = "아직 확인하지 않았습니다";
+        private string releaseNotes = "";
+        public string CurrentAppVersion { get; } = AppVersionInfo.GetCurrentVersion(typeof(App).Assembly);
+        public string CurrentVersionText => $"현재 버전 {CurrentAppVersion} · Windows x64";
+        public string VersionCheckStatus { get => versionCheckStatus; private set { versionCheckStatus = value; OnPropertyChanged(); } }
+        public string LatestVersionText { get => latestVersionText; private set { latestVersionText = value; OnPropertyChanged(); } }
+        public string LastVersionCheckText { get => lastVersionCheckText; private set { lastVersionCheckText = value; OnPropertyChanged(); } }
+        public string ReleaseNotes { get => releaseNotes; private set { releaseNotes = value; OnPropertyChanged(); } }
         private readonly string email;
         private readonly Dictionary<string, FileSystemWatcher> watchers =
             new(StringComparer.OrdinalIgnoreCase);
         private readonly object watcherLock = new();
-        private readonly ConcurrentDictionary<string, DateTimeOffset> recentlyProcessed =
-            new(StringComparer.OrdinalIgnoreCase);
         private readonly DispatcherTimer pathRefreshTimer;
         private readonly UserPreferencesService preferencesService = new();
+        private readonly ActivityHistory activityHistory = new();
+        private RaidSession? displayedSession;
+        private bool showOnlyErrors;
+        private string? currentMap;
+        private string currentLogDirectory = "로그 실행 폴더 미확인";
+        private string screenshotTransmissionStatus = "스크린샷 위치 전송 대기";
         private readonly TarkovLogMonitor logMonitor = new();
+        private readonly RaidSessionSender raidSessionSender;
+        private readonly ScreenshotLocationSender screenshotSender;
+        private readonly PathReportService pathReports;
+        private readonly CancellationTokenSource lifetimeCancellation = new();
+        private readonly long[] pathReportRevisions = new long[2];
+        private string screenshotPathReportStatus = "스크린샷 지정 경로 수집 대기";
+        private string logPathReportStatus = "로그 지정 경로 수집 대기";
+        private readonly object monitoringLock = new();
+        private CancellationTokenSource monitoringCancellation = new();
         private bool isDisposed;
         private bool isMonitoringEnabled = true;
         private string watcherStatus = "스크린샷 폴더를 찾는 중입니다.";
         private string logStatus = "EFT 로그 폴더를 찾는 중입니다.";
         private string raidStatus = "레이드 대기 중";
-        private string? currentRaidMap;
-        private string lastActivity = "아직 감지된 스크린샷이 없습니다.";
+        private string raidTimerStatus = "레이드 타이머 미확보";
+        private string raidTransmissionStatus = "레이드 정보 전송 대기";
+        private long raidTransmissionRevision;
+        private string lastActivity = "아직 기록된 활동이 없습니다.";
 
         public ObservableCollection<string> WatchingPaths { get; } = new();
+        public ReadOnlyObservableCollection<ActivityEntry> Activities => activityHistory.Entries;
+        public ICollectionView ActivityView { get; }
+        public bool HasVisibleActivities => !ActivityView.IsEmpty;
+        public bool ShowOnlyErrors
+        {
+            get => showOnlyErrors;
+            set
+            {
+                if (showOnlyErrors == value) return;
+                showOnlyErrors = value;
+                OnPropertyChanged();
+                ActivityView.Refresh();
+                OnPropertyChanged(nameof(HasVisibleActivities));
+            }
+        }
+        public string? CurrentMap
+        {
+            get => currentMap;
+            private set { currentMap = value; OnPropertyChanged(); }
+        }
+        public string CurrentLogDirectory
+        {
+            get => currentLogDirectory;
+            private set { currentLogDirectory = value; OnPropertyChanged(); }
+        }
+        public string ScreenshotTransmissionStatus
+        {
+            get => screenshotTransmissionStatus;
+            private set { screenshotTransmissionStatus = value; OnPropertyChanged(); }
+        }
 
         public string WatcherStatus
         {
@@ -88,9 +144,12 @@ namespace where_am_i.ViewModels
                 isMonitoringEnabled = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(MonitoringButtonText));
+                OnPropertyChanged(nameof(MonitoringStatusText));
                 ApplyMonitoringState();
             }
         }
+
+        public string MonitoringStatusText => IsMonitoringEnabled ? "감지 켜짐" : "감지 중지";
 
         public string MonitoringButtonText => IsMonitoringEnabled ? "감지 중지" : "감지 시작";
 
@@ -106,6 +165,32 @@ namespace where_am_i.ViewModels
             private set { raidStatus = value; OnPropertyChanged(); }
         }
 
+        public string RaidTimerStatus
+        {
+            get => raidTimerStatus;
+            private set { raidTimerStatus = value; OnPropertyChanged(); }
+        }
+
+        public string RaidTransmissionStatus
+        {
+            get => raidTransmissionStatus;
+            private set { raidTransmissionStatus = value; OnPropertyChanged(); }
+        }
+
+        public string ScreenshotPathReportStatus
+        {
+            get => screenshotPathReportStatus;
+            private set { screenshotPathReportStatus = value; OnPropertyChanged(); }
+        }
+
+        public string LogPathReportStatus
+        {
+            get => logPathReportStatus;
+            private set { logPathReportStatus = value; OnPropertyChanged(); }
+        }
+
+        public RelayCommand CheckVersionCommand { get; }
+        public RelayCommand OpenUpdateDownloadCommand { get; }
         public RelayCommand OpenWebCommand { get; }
         public RelayCommand SelectFolderCommand { get; }
         public RelayCommand SelectLogFolderCommand { get; }
@@ -115,7 +200,15 @@ namespace where_am_i.ViewModels
         public ConfirmedUserViewModel(string userEmail)
         {
             email = userEmail?.Trim() ?? "";
+            raidSessionSender = new RaidSessionSender(HttpClient, email);
+            screenshotSender = new ScreenshotLocationSender(HttpClient, email);
+            pathReports = new PathReportService(HttpClient, CurrentAppVersion);
+            screenshotSender.ProgressChanged += OnScreenshotProgress;
+            ActivityView = CollectionViewSource.GetDefaultView(Activities);
+            ActivityView.Filter = entry => !ShowOnlyErrors || entry is ActivityEntry { IsError: true };
 
+            CheckVersionCommand = new RelayCommand(() => _ = CheckVersionAsync(), () => !isCheckingVersion && !isDisposed);
+            OpenUpdateDownloadCommand = new RelayCommand(OpenUpdateDownload, () => updateDownloadUrl is not null && !isCheckingVersion && !isDisposed);
             OpenWebCommand = new RelayCommand(OpenWeb);
             SelectFolderCommand = new RelayCommand(SelectScreenshotFolder);
             SelectLogFolderCommand = new RelayCommand(SelectLogFolder);
@@ -126,8 +219,7 @@ namespace where_am_i.ViewModels
             isMonitoringEnabled = preferences.MonitoringEnabled;
 
             logMonitor.StatusChanged += OnLogStatusChanged;
-            logMonitor.StateChanged += OnRaidStateChanged;
-            logMonitor.LocationChanged += OnLogLocationChanged;
+            logMonitor.SessionChanged += OnRaidSessionChanged;
 
             pathRefreshTimer = new DispatcherTimer
             {
@@ -135,12 +227,17 @@ namespace where_am_i.ViewModels
             };
             pathRefreshTimer.Tick += OnPathRefreshTimerTick;
 
+            mapAliases.LoadCache();
             ApplyMonitoringState(savePreference: false);
+            _ = RefreshMapAliasesAsync();
+            _ = ReportSavedCustomPathsAsync();
+            _ = CheckVersionAsync();
 
             if (!preferences.HasShownWelcome)
             {
                 Application.Current.Dispatcher.BeginInvoke(() =>
                 {
+                    if (isDisposed) return;
                     MessageBox.Show(
                         "스크린샷과 EFT 로그 폴더를 자동으로 찾습니다.\n\n자동으로 찾지 못한 경우 아래의 폴더 선택 버튼으로 직접 지정해 주세요. 프로그램은 게임 파일을 수정하지 않고 로그와 스크린샷 이름만 읽습니다.",
                         "내 위치 찾기 시작하기",
@@ -152,9 +249,80 @@ namespace where_am_i.ViewModels
             }
         }
 
+        private async Task RefreshMapAliasesAsync()
+        {
+            var token = lifetimeCancellation.Token;
+            var result = await mapAliases.RefreshAsync(token);
+            if (isDisposed || token.IsCancellationRequested) return;
+            if (result.Updated) logMonitor.Refresh();
+            AddActivity("맵 별칭", result.Updated
+                ? (result.CacheSaved ? "맵 별칭 갱신 완료" : "맵 별칭 적용 완료 · 캐시 저장 실패")
+                : "맵 별칭 조회 실패 · 기존 캐시 또는 내장 별칭 사용", !result.Updated || !result.CacheSaved);
+        }
+
+        private async Task CheckVersionAsync()
+        {
+            if (isDisposed || isCheckingVersion) return;
+            isCheckingVersion = true;
+            updateDownloadUrl = null;
+            VersionCheckStatus = "버전 확인 중";
+            LatestVersionText = "최신 버전 미확인";
+            ReleaseNotes = "";
+            CheckVersionCommand.RaiseCanExecuteChanged();
+            OpenUpdateDownloadCommand.RaiseCanExecuteChanged();
+            var token = lifetimeCancellation.Token;
+            try
+            {
+                var result = await versionChecks.CheckAsync(new(CurrentAppVersion), token);
+                if (isDisposed || token.IsCancellationRequested || result.Outcome == VersionCheckOutcome.Canceled) return;
+                LastVersionCheckText = $"마지막 확인 시도 {result.CheckedAt.ToLocalTime():yyyy-MM-dd HH:mm:ss}";
+                VersionCheckStatus = result.Outcome switch
+                {
+                    VersionCheckOutcome.UpToDate => "사용 가능한 업데이트가 없습니다",
+                    VersionCheckOutcome.UpdateAvailable => "새 버전이 있습니다 · 다운로드 페이지를 확인하세요",
+                    VersionCheckOutcome.UpdateRequired => "업데이트가 필요합니다 · 지원 최소 버전을 확인하세요",
+                    _ => "버전 확인 실패 · 다시 확인할 수 있습니다"
+                };
+                if (result.Release is not null)
+                {
+                    LatestVersionText = $"최신 {result.Release.LatestVersion} · 지원 최소 {result.Release.MinimumVersion}";
+                    ReleaseNotes = result.Release.ReleaseNotes;
+                    updateDownloadUrl = result.Outcome is VersionCheckOutcome.UpdateAvailable or VersionCheckOutcome.UpdateRequired
+                        ? result.Release.DownloadUrl : null;
+                }
+                AddActivity("버전 확인", VersionCheckStatus, result.Outcome == VersionCheckOutcome.Failed);
+            }
+            finally
+            {
+                isCheckingVersion = false;
+                if (!isDisposed)
+                {
+                    CheckVersionCommand.RaiseCanExecuteChanged();
+                    OpenUpdateDownloadCommand.RaiseCanExecuteChanged();
+                }
+            }
+        }
+
+        private void OpenUpdateDownload()
+        {
+            var uri = updateDownloadUrl;
+            if (uri is null || !VersionCheckService.TryOfficialDownload(uri.AbsoluteUri, out _)) return;
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = uri.AbsoluteUri, UseShellExecute = true
+                });
+            }
+            catch (Exception)
+            {
+                AddActivity("버전 확인", "다운로드 페이지를 열지 못했습니다.", true);
+            }
+        }
+
         private void OpenWeb()
         {
-            const string url = "https://eftlibrary.com/live-map/customs";
+            var url = LiveMapNavigation.GetUrl(CurrentMap);
 
             try
             {
@@ -194,6 +362,7 @@ namespace where_am_i.ViewModels
             try
             {
                 var selectedPath = ScreenshotPathService.SaveCustomPath(dialog.FolderName);
+                _ = ReportPathAsync(PathReportKind.Screenshot, selectedPath);
                 if (IsMonitoringEnabled)
                     AddWatcher(selectedPath);
                 UpdateWatcherStatus();
@@ -224,8 +393,10 @@ namespace where_am_i.ViewModels
             try
             {
                 var selectedPath = TarkovLogPathService.SaveCustomPath(dialog.FolderName);
+                _ = ReportPathAsync(PathReportKind.Log, selectedPath);
                 logMonitor.Refresh();
                 LogStatus = $"로그 폴더를 등록했습니다: {selectedPath}";
+                AddActivity("설정", "로그 감시 폴더를 변경했습니다.");
             }
             catch (Exception ex)
             {
@@ -238,23 +409,99 @@ namespace where_am_i.ViewModels
             }
         }
 
+        private async Task ReportSavedCustomPathsAsync()
+        {
+            // These read only user selections (including the legacy screenshot setting), never discovery candidates.
+            await Task.WhenAll(
+                ReportPathAsync(PathReportKind.Screenshot, ScreenshotPathService.GetSavedCustomPath()),
+                ReportPathAsync(PathReportKind.Log, TarkovLogPathService.GetSavedCustomPath()));
+        }
+
+        private async Task ReportPathAsync(PathReportKind kind, string? path)
+        {
+            CancellationToken token;
+            lock (monitoringLock)
+            {
+                if (isDisposed) return;
+                token = lifetimeCancellation.Token;
+            }
+            var index = (int)kind;
+            var revision = Interlocked.Increment(ref pathReportRevisions[index]);
+            var label = kind == PathReportKind.Screenshot ? "스크린샷" : "로그";
+            void Show(string message)
+            {
+                if (kind == PathReportKind.Screenshot) ScreenshotPathReportStatus = message;
+                else LogPathReportStatus = message;
+            }
+            RunOnUiThread(() =>
+            {
+                if (!isDisposed && revision == Volatile.Read(ref pathReportRevisions[index]))
+                    Show($"{label} 지정 경로 수집 중");
+            });
+            try
+            {
+                var result = await pathReports.ReportAsync(kind, path, token);
+                RunOnUiThread(() =>
+                {
+                    if (isDisposed || token.IsCancellationRequested || revision != Volatile.Read(ref pathReportRevisions[index])) return;
+                    var message = result.Outcome switch
+                    {
+                        PathReportOutcome.Skipped => $"{label} 사용자 지정 경로 없음",
+                        PathReportOutcome.AlreadyReported => $"{label} 지정 경로 수집 완료",
+                        PathReportOutcome.Success => $"{label} 지정 경로 수집 완료",
+                        PathReportOutcome.StateSaveFailed => $"{label} 경로 전송 완료 · 완료 상태 저장 실패",
+                        PathReportOutcome.Invalid => $"{label} 경로 수집 불가 · 로컬 감지는 유지됩니다",
+                        _ => $"{label} 경로 수집 실패 · 다음 실행 시 재시도"
+                    };
+                    Show(message);
+                    if (result.Outcome is not (PathReportOutcome.Skipped or PathReportOutcome.AlreadyReported or PathReportOutcome.Canceled))
+                        AddActivity("경로 수집", message, result.Outcome != PathReportOutcome.Success);
+                });
+            }
+            catch (Exception)
+            {
+                // Keep reporting failures separate from local save/watch outcomes; never display raw report exceptions.
+                RunOnUiThread(() =>
+                {
+                    if (isDisposed || token.IsCancellationRequested || revision != Volatile.Read(ref pathReportRevisions[index])) return;
+                    Show($"{label} 경로 수집 실패 · 로컬 감지는 유지됩니다");
+                    AddActivity("경로 수집", $"{label} 지정 경로 수집 중 오류가 발생했습니다.", true);
+                });
+            }
+        }
+
         private void ApplyMonitoringState(bool savePreference = true)
         {
             if (savePreference)
             {
                 try { preferencesService.SaveMonitoringEnabled(IsMonitoringEnabled); }
-                catch (Exception ex) { SetLastActivity($"감지 설정 저장 오류: {ex.Message}"); }
+                catch (Exception ex) { SetLastActivity($"감지 설정 저장 오류: {ex.Message}", "설정", true); }
             }
 
             if (IsMonitoringEnabled)
             {
+                lock (monitoringLock)
+                {
+                    if (monitoringCancellation.IsCancellationRequested)
+                    {
+                        monitoringCancellation.Dispose();
+                        monitoringCancellation = new CancellationTokenSource();
+                    }
+                }
+                RaidStatus = "레이드 정보를 확인하는 중";
                 RefreshWatchers();
                 pathRefreshTimer.Start();
                 logMonitor.Start();
+                AddActivity("감지", "스크린샷·로그 감지를 시작했습니다.");
                 return;
             }
 
             pathRefreshTimer.Stop();
+            Interlocked.Increment(ref raidTransmissionRevision);
+            lock (monitoringLock) monitoringCancellation.Cancel();
+            screenshotSender.InvalidatePending();
+            ScreenshotTransmissionStatus = "스크린샷 위치 전송 중지";
+            RaidTransmissionStatus = "레이드 정보 전송 중지";
             logMonitor.Stop();
             string[] paths;
             lock (watcherLock)
@@ -262,87 +509,79 @@ namespace where_am_i.ViewModels
             foreach (var path in paths)
                 RemoveWatcher(path);
             WatcherStatus = "스크린샷 감지 중지";
+            RaidStatus = "감지 중지 · 마지막 레이드 정보 유지";
+            AddActivity("감지", "스크린샷·로그 감지를 중지했습니다.");
         }
 
         private void OnLogStatusChanged(object? sender, string status) =>
-            RunOnUiThread(() => LogStatus = status);
-
-        private async void OnRaidStateChanged(object? sender, RaidState state)
-        {
-            currentRaidMap = state.IsActive ? state.Map : null;
             RunOnUiThread(() =>
             {
-                RaidStatus = state.IsActive
-                    ? $"레이드 진행 중 · {state.Map ?? "맵 확인 중"}"
-                    : "레이드 대기 중";
+                if (isDisposed || LogStatus == status) return;
+                LogStatus = status;
+                if (status.StartsWith("로그를 읽지 못", StringComparison.Ordinal) ||
+                    status.StartsWith("로그 폴더 접근 권한", StringComparison.Ordinal) ||
+                    status.StartsWith("EFT application 로그를 찾지 못", StringComparison.Ordinal))
+                    AddActivity("로그", status, true);
             });
 
-            await SendRaidStateAsync(state);
-        }
-
-        private async void OnLogLocationChanged(object? sender, LogLocation location)
+        private async void OnRaidSessionChanged(object? sender, RaidSession session)
         {
-            var payload = new
+            var revision = Interlocked.Increment(ref raidTransmissionRevision);
+            // Show the observed timer as a diagnostic value, not a live countdown.
+            var timer = session.Timer;
+            RunOnUiThread(() =>
             {
-                email,
-                map = currentRaidMap,
-                x = location.X,
-                y = location.Y,
-                z = location.Z,
-                observed_at = location.ObservedAt
-            };
+                if (isDisposed) return;
+                var previous = displayedSession;
+                displayedSession = session;
+                CurrentMap = session.Map;
+                RaidStatus = !IsMonitoringEnabled ? "감지 중지 · 마지막 레이드 정보 유지"
+                    : session.StartedAt.HasValue ? $"레이드 시작 감지 · {session.Map ?? "맵 확인 중"}"
+                    : session.Map is null ? "레이드 대기 중" : $"맵 로딩 중 · {session.Map}";
+                CurrentLogDirectory = string.IsNullOrWhiteSpace(session.SourceSession)
+                    ? "로그 실행 폴더 미확인" : session.SourceSession;
+                if (session.Map is not null && (previous is null || previous.SourceSession != session.SourceSession ||
+                    previous.LoadingAt != session.LoadingAt || previous.Map != session.Map))
+                    AddActivity("레이드", $"맵 로딩 감지 · {session.Map}");
+                if (session.StartedAt.HasValue && (previous is null || previous.SourceSession != session.SourceSession ||
+                    previous.StartedAt != session.StartedAt))
+                    AddActivity("레이드", $"레이드 시작 감지 · {session.Map ?? "맵 확인 중"}");
+                if (session.Timer is not null && (previous is null || previous.Timer != session.Timer ||
+                    previous.SourceSession != session.SourceSession || previous.LoadingAt != session.LoadingAt))
+                    AddActivity("타이머", $"타이머 기준 확보 · {session.Map ?? "맵 확인 중"}");
+                RaidTimerStatus = timer is null
+                    ? "레이드 타이머 미확보 · 웹에서 수동 입력 가능"
+                    : $"레이드 타이머 확보 · 기록 당시 {(int)timer.RemainingAtObservation.TotalMinutes:00}:{timer.RemainingAtObservation.Seconds:00} · " +
+                  $"기준 {timer.ObservedAt.ToLocalTime():HH:mm:ss}";
+            });
 
-            try
+            CancellationToken cancellationToken;
+            lock (monitoringLock)
             {
-                using var content = new StringContent(
-                    JsonSerializer.Serialize(payload),
-                    Encoding.UTF8,
-                    "application/json"
-                );
-                using var response = await HttpClient.PostAsync(
-                    "/api/where-am-i/v3/send-log-location",
-                    content
-                );
-                if (response.IsSuccessStatusCode)
-                    SetLastActivity($"로그 자동 위치 {DateTime.Now:HH:mm:ss} · X {location.X:0.0}, Z {location.Z:0.0}");
-                else
-                    SetLastActivity($"로그 위치 전송 실패: {(int)response.StatusCode}");
+                if (isDisposed || !IsMonitoringEnabled) return;
+                cancellationToken = monitoringCancellation.Token;
             }
-            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+            RunOnUiThread(() =>
             {
-                SetLastActivity($"로그 위치 통신 오류: {ex.Message}");
-            }
-        }
-
-        private async Task SendRaidStateAsync(RaidState state)
-        {
-            var payload = new
+                if (revision == Volatile.Read(ref raidTransmissionRevision) && !cancellationToken.IsCancellationRequested)
+                    RaidTransmissionStatus = "레이드 정보 전송 중";
+            });
+            var result = await raidSessionSender.SendLatestAsync(session, cancellationToken);
+            if (isDisposed || cancellationToken.IsCancellationRequested ||
+                result.Outcome is SendOutcome.Superseded or SendOutcome.Canceled) return;
+            RunOnUiThread(() =>
             {
-                email,
-                map = state.Map,
-                started_at = state.StartedAt,
-                is_active = state.IsActive,
-                transit_count = state.TransitCount
-            };
-
-            try
-            {
-                using var content = new StringContent(
-                    JsonSerializer.Serialize(payload),
-                    Encoding.UTF8,
-                    "application/json"
-                );
-                using var response = await HttpClient.PostAsync(
-                    "/api/where-am-i/v3/send-raid-state",
-                    content
-                );
-                if (!response.IsSuccessStatusCode)
-                    SetLastActivity($"레이드 상태 전송 실패: {(int)response.StatusCode}");
-            }
-            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
-            {
-                SetLastActivity($"레이드 상태 통신 오류: {ex.Message}");
-            }
+                if (isDisposed || cancellationToken.IsCancellationRequested ||
+                    revision != Volatile.Read(ref raidTransmissionRevision)) return;
+                RaidTransmissionStatus = result.Outcome == SendOutcome.Success
+                    ? result.IncludesTimer ? "레이드 정보 전송 요청 완료 · 타이머 포함" : "레이드 정보 전송 요청 완료 · 타이머 없음"
+                    : result.Outcome == SendOutcome.Rejected
+                        ? "서버가 레이드 정보 수신을 확인하지 못했습니다"
+                        : result.StatusCode.HasValue
+                            ? $"레이드 정보 전송 실패: {(int)result.StatusCode.Value}"
+                            : "레이드 정보 전송 실패 · 서버 연결을 확인하세요";
+                AddActivity("레이드 전송", RaidTransmissionStatus, result.Outcome != SendOutcome.Success);
+            });
         }
 
         private void OnPathRefreshTimerTick(object? sender, EventArgs e)
@@ -462,122 +701,52 @@ namespace where_am_i.ViewModels
 
         private async void OnScreenshotCreated(object sender, FileSystemEventArgs e)
         {
+            CancellationToken token;
+            lock (monitoringLock)
+            {
+                if (isDisposed || !IsMonitoringEnabled) return;
+                token = monitoringCancellation.Token;
+            }
             try
             {
-                var fileName = Path.GetFileName(e.FullPath);
-                if (!IsTarkovScreenshot(fileName))
+                var result = await screenshotSender.ProcessFileAsync(e.FullPath, token);
+                if (result.Outcome is ScreenshotOutcome.Ignored or ScreenshotOutcome.Canceled or ScreenshotOutcome.Superseded)
                     return;
-
-                var now = DateTimeOffset.UtcNow;
-                if (recentlyProcessed.TryGetValue(e.FullPath, out var processedAt) &&
-                    now - processedAt < TimeSpan.FromSeconds(3))
+                RunOnUiThread(() =>
                 {
-                    return;
-                }
-
-                recentlyProcessed[e.FullPath] = now;
-                RemoveExpiredProcessedEntries(now);
-
-                if (!await WaitUntilFileReadyAsync(e.FullPath))
-                {
-                    SetLastActivity($"파일 준비 실패: {fileName}");
-                    return;
-                }
-
-                await SendScreenshotLocationAsync(fileName);
+                    if (isDisposed || token.IsCancellationRequested || !screenshotSender.IsCurrent(result.Revision)) return;
+                    ScreenshotTransmissionStatus = result.Outcome switch
+                    {
+                        ScreenshotOutcome.Success => $"스크린샷 전송 완료 {DateTime.Now:HH:mm:ss} · {result.FileName}",
+                        ScreenshotOutcome.FileNotReady => $"파일 준비 실패: {result.FileName}",
+                        ScreenshotOutcome.Rejected => "스크린샷 전송 실패: 서버가 수신을 확인하지 못했습니다.",
+                        _ => result.StatusCode.HasValue
+                            ? $"스크린샷 전송 실패: {(int)result.StatusCode.Value}"
+                            : "스크린샷 전송 실패 · 서버 연결을 확인하세요"
+                    };
+                    AddActivity("스크린샷 전송", ScreenshotTransmissionStatus, result.Outcome != ScreenshotOutcome.Success);
+                });
             }
             catch (Exception ex)
             {
-                SetLastActivity($"스크린샷 처리 오류: {ex.Message}");
+                if (!token.IsCancellationRequested)
+                    SetLastActivity($"스크린샷 처리 오류: {ex.Message}", "스크린샷", true);
             }
         }
 
-        private static bool IsTarkovScreenshot(string fileName)
+        private void OnScreenshotProgress(object? sender, ScreenshotProgress progress)
         {
-            if (string.IsNullOrWhiteSpace(fileName))
-                return false;
-
-            return TarkovScreenshotFileNamePattern.IsMatch(fileName);
-        }
-
-        private static async Task<bool> WaitUntilFileReadyAsync(
-            string path,
-            int retryCount = 20
-        )
-        {
-            for (var attempt = 0; attempt < retryCount; attempt++)
+            RunOnUiThread(() =>
             {
-                try
+                if (isDisposed || !IsMonitoringEnabled || !screenshotSender.IsCurrent(progress.Revision)) return;
+                ScreenshotTransmissionStatus = progress.Stage switch
                 {
-                    using var stream = File.Open(
-                        path,
-                        FileMode.Open,
-                        FileAccess.Read,
-                        FileShare.Read
-                    );
-                    return stream.Length > 0;
-                }
-                catch (IOException)
-                {
-                    await Task.Delay(200);
-                }
-                catch (UnauthorizedAccessException)
-                {
-                    await Task.Delay(200);
-                }
-            }
-
-            return false;
-        }
-
-        private async Task SendScreenshotLocationAsync(string fileName)
-        {
-            if (string.IsNullOrWhiteSpace(email))
-            {
-                SetLastActivity("이메일 정보가 없어 위치를 전송하지 못했습니다.");
-                return;
-            }
-
-            var payload = new
-            {
-                email,
-                location = fileName
-            };
-
-            try
-            {
-                var json = JsonSerializer.Serialize(payload);
-                using var content = new StringContent(json, Encoding.UTF8, "application/json");
-                using var response = await HttpClient.PostAsync(
-                    "/api/where-am-i/send-location",
-                    content
-                );
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    SetLastActivity($"서버 전송 실패: {(int)response.StatusCode}");
-                    return;
-                }
-
-                var responseContent = await response.Content.ReadAsStringAsync();
-                using var responseDocument = JsonDocument.Parse(responseContent);
-                if (!responseDocument.RootElement.TryGetProperty("data", out var dataElement) ||
-                    dataElement.ValueKind != JsonValueKind.True)
-                {
-                    SetLastActivity("서버 전송 실패: 사용자 정보를 확인할 수 없습니다.");
-                    return;
-                }
-
-                SetLastActivity($"최근 전송 {DateTime.Now:HH:mm:ss} · {fileName}");
-            }
-            catch (TaskCanceledException)
-            {
-                SetLastActivity("서버 전송 시간이 초과되었습니다.");
-            }
-            catch (HttpRequestException ex)
-            {
-                SetLastActivity($"서버 통신 오류: {ex.Message}");
-            }
+                    ScreenshotStage.WaitingForFile => "스크린샷 저장 완료 대기",
+                    ScreenshotStage.WaitingToSend => "스크린샷 위치 전송 대기",
+                    ScreenshotStage.Retrying => $"스크린샷 위치 재전송 중 · {progress.Attempt}/3",
+                    _ => "스크린샷 위치 전송 중"
+                };
+            });
         }
 
         private void UpdateWatcherStatus()
@@ -600,13 +769,21 @@ namespace where_am_i.ViewModels
             RunOnUiThread(() =>
             {
                 WatcherStatus = status;
-                LastActivity = activity;
+                AddActivity("스크린샷 감시", activity, true);
             });
         }
 
-        private void SetLastActivity(string message)
+        private void SetLastActivity(string message, string category = "앱", bool isError = false)
         {
-            RunOnUiThread(() => LastActivity = message);
+            RunOnUiThread(() => AddActivity(category, message, isError));
+        }
+
+        private void AddActivity(string category, string message, bool isError = false)
+        {
+            if (isDisposed) return;
+            activityHistory.Add(category, message, isError);
+            LastActivity = message;
+            OnPropertyChanged(nameof(HasVisibleActivities));
         }
 
         private static void RunOnUiThread(Action action)
@@ -621,29 +798,25 @@ namespace where_am_i.ViewModels
                 dispatcher.BeginInvoke(action);
         }
 
-        private void RemoveExpiredProcessedEntries(DateTimeOffset now)
-        {
-            if (recentlyProcessed.Count < 100)
-                return;
-
-            foreach (var entry in recentlyProcessed)
-            {
-                if (now - entry.Value > TimeSpan.FromMinutes(1))
-                    recentlyProcessed.TryRemove(entry.Key, out _);
-            }
-        }
-
         public void Dispose()
         {
             if (isDisposed)
                 return;
 
             isDisposed = true;
+            lock (monitoringLock)
+            {
+                monitoringCancellation.Cancel();
+                monitoringCancellation.Dispose();
+                lifetimeCancellation.Cancel();
+                lifetimeCancellation.Dispose();
+            }
+            screenshotSender.InvalidatePending();
+            screenshotSender.ProgressChanged -= OnScreenshotProgress;
             pathRefreshTimer.Stop();
             pathRefreshTimer.Tick -= OnPathRefreshTimerTick;
             logMonitor.StatusChanged -= OnLogStatusChanged;
-            logMonitor.StateChanged -= OnRaidStateChanged;
-            logMonitor.LocationChanged -= OnLogLocationChanged;
+            logMonitor.SessionChanged -= OnRaidSessionChanged;
             logMonitor.Dispose();
 
             string[] paths;
