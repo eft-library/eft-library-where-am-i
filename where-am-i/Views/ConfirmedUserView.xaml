@@ -68,6 +68,29 @@
                         </Grid>
                         <TextBlock Text="{Binding WatcherStatus}" Style="{StaticResource StatusDetailStyle}"/>
                         <TextBlock Text="{Binding ScreenshotTransmissionStatus}" Style="{StaticResource StatusDetailStyle}"/>
+                        <Expander Header="스크린샷 자동 정리" Margin="0,12,0,0" Foreground="{StaticResource SecondaryTextBrush}">
+                            <StackPanel Margin="0,10,0,0">
+                                <CheckBox Content="오래된 스크린샷 자동 정리" IsChecked="{Binding ScreenshotCleanupEnabled}"
+                                          Foreground="{StaticResource PrimaryTextBrush}"/>
+                                <WrapPanel Margin="0,10,0,0">
+                                    <TextBlock Text="보관 기간" VerticalAlignment="Center" Margin="0,0,8,6"/>
+                                    <TextBox Text="{Binding ScreenshotRetentionDaysText, UpdateSourceTrigger=PropertyChanged}" Width="68"
+                                             MaxLength="3" Padding="8,5" Margin="0,0,6,6" AutomationProperties.Name="스크린샷 보관 일수"/>
+                                    <TextBlock Text="일 (1~365)" VerticalAlignment="Center" Margin="0,0,12,6"/>
+                                </WrapPanel>
+                                <TextBlock Text="{Binding ScreenshotCleanupFolderText}" ToolTip="{Binding ScreenshotCleanupFolderText}"
+                                           TextTrimming="CharacterEllipsis" Style="{StaticResource StatusDetailStyle}"/>
+                                <WrapPanel Margin="0,10,0,0">
+                                    <Button Content="정리 폴더 선택" Command="{Binding SelectCleanupFolderCommand}"
+                                            Style="{StaticResource FolderButtonStyle}" FontSize="12" Height="36" Padding="14,0" Margin="0,0,8,6"/>
+                                    <Button Content="설정 적용" Command="{Binding ApplyCleanupSettingsCommand}"
+                                            Style="{StaticResource SecondaryButtonStyle}" FontSize="12" Height="36" Padding="14,0" Margin="0,0,0,6"/>
+                                </WrapPanel>
+                                <TextBlock Text="선택한 폴더의 게임 좌표 형식 PNG만 휴지통으로 이동합니다. 설정을 변경한 뒤 ‘설정 적용’을 눌러 주세요."
+                                           Style="{StaticResource StatusDetailStyle}"/>
+                                <TextBlock Text="{Binding ScreenshotCleanupStatus}" Style="{StaticResource StatusDetailStyle}"/>
+                            </StackPanel>
+                        </Expander>
                         <Expander Header="스크린샷 경로 보기" Margin="0,12,0,0"
                                   Foreground="{StaticResource SecondaryTextBrush}">
                             <StackPanel Margin="0,8,0,0">

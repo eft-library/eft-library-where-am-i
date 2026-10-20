@@ -24,6 +24,9 @@
     <Compile Include="../../where-am-i/Services/AppVersionInfo.cs" Link="Services/AppVersionInfo.cs" />
     <Compile Include="../../where-am-i/Services/VersionCheckService.cs" Link="Services/VersionCheckService.cs" />
     <Compile Include="../../where-am-i/Services/LatestJsonSender.cs" Link="Services/LatestJsonSender.cs" />
+    <Compile Include="../../where-am-i/Services/ScreenshotFileActivity.cs" Link="Services/ScreenshotFileActivity.cs" />
+    <Compile Include="../../where-am-i/Services/ScreenshotCleanupService.cs" Link="Services/ScreenshotCleanupService.cs" />
+    <Compile Include="../../where-am-i/Services/UserPreferencesService.cs" Link="Services/UserPreferencesService.cs" />
     <Compile Include="../../where-am-i/Services/ScreenshotLocationSender.cs" Link="Services/ScreenshotLocationSender.cs" />
     <Compile Include="../../where-am-i/Services/RaidSessionSender.cs" Link="Services/RaidSessionSender.cs" />
     <Compile Include="../../where-am-i/Services/TarkovLogPathService.cs" Link="Services/TarkovLogPathService.cs" />

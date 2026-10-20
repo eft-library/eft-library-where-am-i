@@ -22,20 +22,22 @@ namespace where_am_i.Services
         private readonly string email;
         private readonly Func<TimeSpan, CancellationToken, Task> delay;
         private readonly TimeProvider clock;
+        private readonly ScreenshotFileActivity fileActivity;
         private readonly object dedupLock = new();
         private readonly Dictionary<string, DateTimeOffset> recentPaths = new(StringComparer.OrdinalIgnoreCase);
         public event EventHandler<ScreenshotProgress>? ProgressChanged;
 
-        public ScreenshotLocationSender(HttpClient httpClient, string email)
-            : this(httpClient, email, Task.Delay) { }
+        public ScreenshotLocationSender(HttpClient httpClient, string email, ScreenshotFileActivity? activity = null)
+            : this(httpClient, email, Task.Delay, activity: activity) { }
 
         internal ScreenshotLocationSender(HttpClient httpClient, string email,
-            Func<TimeSpan, CancellationToken, Task> delay, TimeProvider? clock = null)
+            Func<TimeSpan, CancellationToken, Task> delay, TimeProvider? clock = null, ScreenshotFileActivity? activity = null)
         {
             sender = new(httpClient, Endpoint, delay);
             this.email = email;
             this.delay = delay;
             this.clock = clock ?? TimeProvider.System;
+            fileActivity = activity ?? new ScreenshotFileActivity();
         }
 
         public bool IsCurrent(long revision) => sender.IsCurrent(revision);
@@ -50,6 +52,8 @@ namespace where_am_i.Services
                 token.ThrowIfCancellationRequested();
                 if (!IsScreenshot(fileName)) return new(ScreenshotOutcome.Ignored, 0, fileName);
                 if (string.IsNullOrWhiteSpace(email)) return new(ScreenshotOutcome.Rejected, 0, fileName);
+                using var fileLease = fileActivity.BeginTransfer(path);
+                if (fileLease is null) return new(ScreenshotOutcome.FileNotReady, 0, fileName);
                 lock (dedupLock)
                 {
                     var now = clock.GetUtcNow();

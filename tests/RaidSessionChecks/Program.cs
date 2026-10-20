@@ -104,4 +104,5 @@ await PathReportChecks.Run(Check);
 await VersionChecks.Run(Check);
 await LogTargetChecks.Run(root, Check);
 await IntegrationChecks.Run(root, Check);
+await CleanupChecks.Run(Check);
 Console.WriteLine($"PASS: {checks} checks against production C# sources");

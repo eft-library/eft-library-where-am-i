@@ -5,17 +5,14 @@ namespace where_am_i.Services
 {
     public sealed class UserPreferencesService
     {
-        private const int CurrentVersion = 2;
+        private const int CurrentVersion = 3;
         private readonly string settingsPath;
 
-        public UserPreferencesService()
+        public UserPreferencesService() : this(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "EFTLibrary", "WhereAmI", "settings.json")) { }
+
+        internal UserPreferencesService(string path)
         {
-            var settingsDirectory = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "EFTLibrary",
-                "WhereAmI"
-            );
-            settingsPath = Path.Combine(settingsDirectory, "settings.json");
+            settingsPath = path;
         }
 
         public UserPreferences Load()
@@ -32,6 +29,8 @@ namespace where_am_i.Services
 
                 // Version 1 only contained the email fields and can be upgraded safely.
                 preferences.Version = CurrentVersion;
+                if (preferences.ScreenshotRetentionDays is < 1 or > 365)
+                { preferences.ScreenshotRetentionDays = 3; preferences.ScreenshotCleanupEnabled = false; }
                 return preferences;
             }
             catch (JsonException)
@@ -73,6 +72,16 @@ namespace where_am_i.Services
             Save(preferences);
         }
 
+        public void SaveScreenshotCleanup(bool enabled, int days, string? folder)
+        {
+            if (days is < 1 or > 365) throw new ArgumentOutOfRangeException(nameof(days));
+            var preferences = Load();
+            preferences.ScreenshotCleanupEnabled = enabled;
+            preferences.ScreenshotRetentionDays = days;
+            preferences.ScreenshotCleanupFolder = folder;
+            Save(preferences);
+        }
+
         private void Save(UserPreferences preferences)
         {
             var directory = Path.GetDirectoryName(settingsPath)
@@ -83,15 +92,28 @@ namespace where_am_i.Services
                 preferences,
                 new JsonSerializerOptions { WriteIndented = true }
             );
-            File.WriteAllText(settingsPath, json);
+            var temporary = settingsPath + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            try
+            {
+                File.WriteAllText(temporary, json);
+                File.Move(temporary, settingsPath, overwrite: true);
+            }
+            finally
+            {
+                try { File.Delete(temporary); }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+            }
         }
     }
 
     public sealed class UserPreferences
     {
-        public int Version { get; set; } = 2;
+        public int Version { get; set; } = 3;
         public bool RememberEmail { get; set; }
         public string Email { get; set; } = "";
         public bool HasShownWelcome { get; set; }
+        public bool ScreenshotCleanupEnabled { get; set; }
+        public int ScreenshotRetentionDays { get; set; } = 3;
+        public string? ScreenshotCleanupFolder { get; set; }
     }
 }

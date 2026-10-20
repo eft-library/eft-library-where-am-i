@@ -55,6 +55,26 @@ namespace where_am_i.ViewModels
         private readonly TarkovLogMonitor logMonitor = new();
         private readonly RaidSessionSender raidSessionSender;
         private readonly ScreenshotLocationSender screenshotSender;
+        private readonly ScreenshotFileActivity screenshotFiles = new();
+        private readonly ScreenshotCleanupService screenshotCleanup;
+        private readonly DispatcherTimer cleanupTimer;
+        private CancellationTokenSource cleanupCancellation = new();
+        private bool appliedCleanupEnabled;
+        private int appliedCleanupDays = 3;
+        private string? appliedCleanupFolder;
+        private int cleanupGeneration;
+        private bool cleanupRunning;
+        private bool screenshotCleanupEnabled;
+        private string screenshotRetentionDaysText = "3";
+        private string? screenshotCleanupFolder;
+        private string screenshotCleanupStatus = "자동 정리 꺼짐";
+        public bool ScreenshotCleanupEnabled { get => screenshotCleanupEnabled; set { screenshotCleanupEnabled = value; OnPropertyChanged(); } }
+        public string ScreenshotRetentionDaysText { get => screenshotRetentionDaysText; set { screenshotRetentionDaysText = value; OnPropertyChanged(); } }
+        public string? ScreenshotCleanupFolder { get => screenshotCleanupFolder; private set { screenshotCleanupFolder = value; OnPropertyChanged(); OnPropertyChanged(nameof(ScreenshotCleanupFolderText)); } }
+        public string ScreenshotCleanupFolderText => ScreenshotCleanupFolder ?? "정리할 폴더를 선택해 주세요";
+        public string ScreenshotCleanupStatus { get => screenshotCleanupStatus; private set { screenshotCleanupStatus = value; OnPropertyChanged(); } }
+        public RelayCommand SelectCleanupFolderCommand { get; }
+        public RelayCommand ApplyCleanupSettingsCommand { get; }
         private readonly PathReportService pathReports;
         private readonly CancellationTokenSource lifetimeCancellation = new();
         private readonly long[] pathReportRevisions = new long[2];
@@ -184,7 +204,8 @@ namespace where_am_i.ViewModels
         {
             email = userEmail?.Trim() ?? "";
             raidSessionSender = new RaidSessionSender(HttpClient, email);
-            screenshotSender = new ScreenshotLocationSender(HttpClient, email);
+            screenshotSender = new ScreenshotLocationSender(HttpClient, email, screenshotFiles);
+            screenshotCleanup = new ScreenshotCleanupService(WindowsRecycleBin.MoveFile, screenshotFiles);
             pathReports = new PathReportService(HttpClient, CurrentAppVersion);
             screenshotSender.ProgressChanged += OnScreenshotProgress;
 
@@ -194,8 +215,17 @@ namespace where_am_i.ViewModels
             SelectFolderCommand = new RelayCommand(SelectScreenshotFolder);
             SelectLogFolderCommand = new RelayCommand(SelectLogFolder);
             ExitCommand = new RelayCommand(ExitApp);
+            SelectCleanupFolderCommand = new RelayCommand(SelectCleanupFolder);
+            ApplyCleanupSettingsCommand = new RelayCommand(ApplyCleanupSettings);
 
             var preferences = preferencesService.Load();
+            appliedCleanupEnabled = preferences.ScreenshotCleanupEnabled;
+            appliedCleanupDays = preferences.ScreenshotRetentionDays;
+            appliedCleanupFolder = preferences.ScreenshotCleanupFolder;
+            RestoreCleanupDraft();
+            cleanupTimer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(30) };
+            cleanupTimer.Tick += OnCleanupTimerTick;
+            if (appliedCleanupEnabled) cleanupTimer.Start();
 
             logMonitor.StatusChanged += OnLogStatusChanged;
             logMonitor.SessionChanged += OnRaidSessionChanged;
@@ -209,6 +239,7 @@ namespace where_am_i.ViewModels
             StartMonitoring();
             _ = ReportSavedCustomPathsAsync();
             _ = CheckVersionAsync();
+            if (appliedCleanupEnabled) _ = RunCleanupAsync();
 
             if (!preferences.HasShownWelcome)
             {
@@ -223,6 +254,111 @@ namespace where_am_i.ViewModels
                     );
                     preferencesService.MarkWelcomeShown();
                 });
+            }
+        }
+
+        private void RestoreCleanupDraft()
+        {
+            ScreenshotCleanupEnabled = appliedCleanupEnabled;
+            ScreenshotRetentionDaysText = appliedCleanupDays.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            ScreenshotCleanupFolder = appliedCleanupFolder;
+            ScreenshotCleanupStatus = appliedCleanupEnabled
+                ? $"자동 정리 켜짐 · {appliedCleanupDays}일 보관 · 30분마다 확인" : "자동 정리 꺼짐";
+        }
+
+        private void SelectCleanupFolder()
+        {
+            var dialog = new OpenFolderDialog { Title = "자동 정리할 스크린샷 폴더 선택", Multiselect = false };
+            if (dialog.ShowDialog() == true) ScreenshotCleanupFolder = dialog.FolderName;
+        }
+
+        private void ApplyCleanupSettings()
+        {
+            if (isDisposed) return;
+            if (!int.TryParse(ScreenshotRetentionDaysText?.Trim(), System.Globalization.NumberStyles.None,
+                System.Globalization.CultureInfo.InvariantCulture, out var days) || days is < 1 or > 365)
+            {
+                if (ScreenshotCleanupEnabled) { ScreenshotCleanupStatus = "보관 기간은 1~365일의 정수로 입력해 주세요."; return; }
+                days = appliedCleanupDays; // Invalid draft input must not prevent disabling cleanup.
+            }
+            var folder = ScreenshotCleanupFolder;
+            if (ScreenshotCleanupEnabled)
+            {
+                if (!ScreenshotCleanupService.TryFolder(folder, out var normalized))
+                { ScreenshotCleanupStatus = "로컬 정리 폴더를 선택해 주세요. 드라이브 전체·연결 폴더는 지원하지 않습니다."; return; }
+                folder = normalized;
+                if (!appliedCleanupEnabled || days != appliedCleanupDays ||
+                    !string.Equals(folder, appliedCleanupFolder, StringComparison.OrdinalIgnoreCase))
+                {
+                    var confirmed = MessageBox.Show(
+                        $"다음 폴더의 오래된 게임 스크린샷을 휴지통으로 이동합니다.\n\n{folder}\n\n" +
+                        $"마지막 수정 후 {days}일이 지난 파일 중 게임 좌표 파일명 형식과 일치하는 PNG만 정리합니다. " +
+                        "기존 파일도 대상이며 하위 폴더는 정리하지 않습니다.\n\n" +
+                        "지금부터 자동 정리를 켤까요? 휴지통을 비우기 전에는 디스크 공간이 완전히 확보되지 않습니다.",
+                        "스크린샷 자동 정리", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No);
+                    if (confirmed != MessageBoxResult.Yes) { RestoreCleanupDraft(); return; }
+                }
+            }
+            if (!ScreenshotCleanupEnabled)
+            {
+                cleanupTimer.Stop();
+                cleanupCancellation.Cancel();
+                cleanupGeneration++;
+                appliedCleanupEnabled = false;
+            }
+            try { preferencesService.SaveScreenshotCleanup(ScreenshotCleanupEnabled, days, folder); }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                ScreenshotCleanupStatus = ScreenshotCleanupEnabled
+                    ? "자동 정리 설정을 저장하지 못했습니다. 이전 설정을 유지합니다."
+                    : "이번 실행의 정리는 중지했지만 설정 저장에 실패했습니다. 다음 실행에서 설정을 확인해 주세요.";
+                return;
+            }
+            cleanupTimer.Stop();
+            cleanupCancellation.Cancel();
+            cleanupCancellation.Dispose();
+            cleanupCancellation = new CancellationTokenSource();
+            cleanupGeneration++;
+            appliedCleanupEnabled = ScreenshotCleanupEnabled;
+            appliedCleanupDays = days;
+            appliedCleanupFolder = folder;
+            RestoreCleanupDraft();
+            AddActivity("스크린샷 정리", appliedCleanupEnabled ? $"자동 정리 켜짐 · {days}일 보관" : "자동 정리 꺼짐");
+            if (appliedCleanupEnabled) { cleanupTimer.Start(); _ = RunCleanupAsync(); }
+        }
+
+        private void OnCleanupTimerTick(object? sender, EventArgs e) => _ = RunCleanupAsync();
+
+        private async Task RunCleanupAsync()
+        {
+            if (isDisposed || !appliedCleanupEnabled || cleanupRunning) return;
+            cleanupRunning = true;
+            var generation = cleanupGeneration;
+            var token = cleanupCancellation.Token;
+            ScreenshotCleanupStatus = "오래된 스크린샷을 확인하는 중";
+            try
+            {
+                var result = await screenshotCleanup.RunAsync(appliedCleanupFolder, appliedCleanupDays, token);
+                if (isDisposed) return;
+                var summary = $"휴지통 이동 {result.Recycled}개 · 건너뜀 {result.Skipped}개 · 실패 {result.Failed}개";
+                if (generation == cleanupGeneration)
+                    ScreenshotCleanupStatus = result.Error ?? (result.Canceled ? "정리 중단 · " : "정리 확인 완료 · ") + summary;
+                if (result.Recycled > 0 || result.Failed > 0 || result.Error is not null)
+                    AddActivity("스크린샷 정리", result.Error is null ? summary : result.Error + " · " + summary,
+                        result.Error is not null || result.Failed > 0);
+            }
+            catch (Exception)
+            {
+                if (!isDisposed)
+                {
+                    if (generation == cleanupGeneration) ScreenshotCleanupStatus = "자동 정리 중 오류가 발생했습니다. 파일은 영구 삭제하지 않습니다.";
+                    AddActivity("스크린샷 정리", "자동 정리 오류 · 다음 확인 때 다시 시도합니다.", true);
+                }
+            }
+            finally
+            {
+                cleanupRunning = false;
+                if (!isDisposed && appliedCleanupEnabled && generation != cleanupGeneration) _ = RunCleanupAsync();
             }
         }
 
@@ -739,6 +875,10 @@ namespace where_am_i.ViewModels
                 return;
 
             isDisposed = true;
+            cleanupTimer.Stop();
+            cleanupTimer.Tick -= OnCleanupTimerTick;
+            cleanupCancellation.Cancel();
+            cleanupCancellation.Dispose();
             lock (monitoringLock)
             {
                 monitoringCancellation.Cancel();
