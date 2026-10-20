@@ -46,16 +46,15 @@ def main():
             raise RuntimeError('Expected Windows executable missing')
         if any(p.suffix.lower() in {'.pdb', '.log'} for p in payload.rglob('*') if p.is_file()):
             raise RuntimeError('Unexpected debug or log file in publish output')
-        (payload / 'docs').mkdir()
-        for document in ('USER_GUIDE.md', 'RELEASE_NOTES.md', 'WINDOWS_VALIDATION.md'):
-            shutil.copy2(ROOT / 'docs' / document, payload / 'docs' / document)
-        shutil.copytree(ROOT / 'docs/images', payload / 'docs/images')
+        shutil.copy2(ROOT / 'README.md', payload / 'README.md')
+        shutil.copy2(ROOT / 'LICENSE', payload / 'LICENSE')
         (payload / 'README.txt').write_text(
             f'EFT Library Where Am I {args.version} / Windows x64\n'
             'Extract the ZIP, then run where-am-i.exe. No separate .NET installation is required.\n'
-            'User guide: docs/USER_GUIDE.md\nRelease notes: docs/RELEASE_NOTES.md\n'
-            'Windows gameplay and backend/web integration remain to be verified: docs/WINDOWS_VALIDATION.md\n'
-            'This local package has not been signed, uploaded, or scanned by this packaging script.\n', encoding='utf-8')
+            'Usage, folder setup, API behavior and validation checklist: README.md\n'
+            'License: LICENSE\n'
+            'Windows gameplay and backend/web integration must be checked in the target environment.\n'
+            'This packaging script does not sign, upload, or scan the executable.\n', encoding='utf-8')
         manifest = {
             'product': 'where-am-i', 'version': args.version, 'runtime': 'win-x64',
             'created_at': datetime.now(timezone.utc).isoformat(),
