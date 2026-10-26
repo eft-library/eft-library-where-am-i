@@ -49,6 +49,7 @@
                 </Grid>
                 <TextBlock Text="실행 중 자동 감지" Style="{StaticResource StatusDetailStyle}" Margin="0,8,0,16"/>
 
+
                 <Border Style="{StaticResource StatusCardStyle}">
                     <StackPanel>
                         <TextBlock Text="{Binding RaidStatus}" FontSize="15" FontWeight="SemiBold"/>
@@ -68,6 +69,35 @@
                         </Grid>
                         <TextBlock Text="{Binding WatcherStatus}" Style="{StaticResource StatusDetailStyle}"/>
                         <TextBlock Text="{Binding ScreenshotTransmissionStatus}" Style="{StaticResource StatusDetailStyle}"/>
+                        <StackPanel DataContext="{Binding ScreenshotSearch}" Margin="0,12,0,0">
+                            <TextBlock Text="기본 경로는 자동 확인합니다. 전체 탐색은 수 분 이상 걸릴 수 있으며, 한 번 검색하면 스크린샷·로그 결과를 각 영역에 표시합니다."
+                                       Style="{StaticResource StatusDetailStyle}"/>
+                            <WrapPanel Margin="0,10,0,0">
+                                <Button Content="스크린샷 폴더 탐색" Command="{Binding SearchCommand}" Style="{StaticResource FolderButtonStyle}" Margin="0,0,8,6" Padding="14,0"/>
+                                <Button Content="탐색 취소" Command="{Binding CancelCommand}" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,0,6" Padding="14,0"/>
+                            </WrapPanel>
+                            <ProgressBar Height="6" Margin="0,6,0,4"
+                                         IsIndeterminate="{Binding IsSearching}"
+                                         Foreground="{StaticResource AccentBrush}"
+                                         AutomationProperties.Name="폴더 탐색 진행 중">
+                                <ProgressBar.Style>
+                                    <Style TargetType="ProgressBar">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsSearching}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ProgressBar.Style>
+                            </ProgressBar>
+
+                            <TextBlock Text="{Binding Status}" Style="{StaticResource StatusDetailStyle}"/>
+                            <ComboBox Style="{StaticResource DarkComboBoxStyle}" ItemsSource="{Binding Results}" SelectedItem="{Binding Selected}" DisplayMemberPath="Display"
+                                      AutomationProperties.Name="스크린샷 탐색 결과" Margin="0,10,0,8" MaxDropDownHeight="240" ToolTip="{Binding Selected.Path}"/>
+                            <Button Content="선택한 스크린샷 폴더 사용" Command="{Binding ApplyCommand}" Style="{StaticResource SecondaryButtonStyle}" HorizontalAlignment="Left" Padding="14,0"/>
+                            <TextBlock Text="자동 정리가 켜져 있으면 적용한 스크린샷 폴더에도 현재 보관 기간으로 정리가 적용됩니다." Style="{StaticResource StatusDetailStyle}"/>
+                        </StackPanel>
                         <Expander Header="스크린샷 자동 정리" Margin="0,12,0,0" Foreground="{StaticResource SecondaryTextBrush}">
                             <StackPanel Margin="0,10,0,0">
                                 <CheckBox Content="오래된 스크린샷 자동 정리" IsChecked="{Binding ScreenshotCleanupEnabled}"
@@ -119,6 +149,35 @@
                                     Style="{StaticResource FolderButtonStyle}" Margin="12,0,0,0" FontSize="12" Height="36" Padding="14,0"/>
                         </Grid>
                         <TextBlock Text="{Binding LogStatus}" Style="{StaticResource StatusDetailStyle}"/>
+                        <StackPanel DataContext="{Binding LogSearch}" Margin="0,12,0,0">
+                            <TextBlock Text="기본 경로는 자동 확인합니다. 전체 탐색은 수 분 이상 걸릴 수 있으며, 한 번 검색하면 스크린샷·로그 결과를 각 영역에 표시합니다."
+                                       Style="{StaticResource StatusDetailStyle}"/>
+                            <WrapPanel Margin="0,10,0,0">
+                                <Button Content="로그 폴더 탐색" Command="{Binding SearchCommand}" Style="{StaticResource FolderButtonStyle}" Margin="0,0,8,6" Padding="14,0"/>
+                                <Button Content="탐색 취소" Command="{Binding CancelCommand}" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,0,6" Padding="14,0"/>
+                            </WrapPanel>
+                            <ProgressBar Height="6" Margin="0,6,0,4"
+                                         IsIndeterminate="{Binding IsSearching}"
+                                         Foreground="{StaticResource AccentBrush}"
+                                         AutomationProperties.Name="폴더 탐색 진행 중">
+                                <ProgressBar.Style>
+                                    <Style TargetType="ProgressBar">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsSearching}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ProgressBar.Style>
+                            </ProgressBar>
+
+                            <TextBlock Text="{Binding Status}" Style="{StaticResource StatusDetailStyle}"/>
+                            <ComboBox Style="{StaticResource DarkComboBoxStyle}" ItemsSource="{Binding Results}" SelectedItem="{Binding Selected}" DisplayMemberPath="Display"
+                                      AutomationProperties.Name="로그 탐색 결과" Margin="0,10,0,8" MaxDropDownHeight="240" ToolTip="{Binding Selected.Path}"/>
+                            <Button Content="선택한 로그 폴더 사용" Command="{Binding ApplyCommand}" Style="{StaticResource SecondaryButtonStyle}" HorizontalAlignment="Left" Padding="14,0"/>
+
+                        </StackPanel>
                         <Expander Header="로그 경로 보기" Margin="0,12,0,0"
                                   Foreground="{StaticResource SecondaryTextBrush}">
                             <StackPanel Margin="0,8,0,0">
@@ -132,23 +191,7 @@
                     </StackPanel>
                 </Border>
 
-                <Border Style="{StaticResource StatusCardStyle}">
-                    <StackPanel>
-                        <TextBlock Text="폴더 자동 탐색" FontSize="14" FontWeight="SemiBold"/>
-                        <TextBlock Text="Documents·OneDrive·Steam 경로는 기본으로 확인합니다. 전체 탐색은 파일 수에 따라 수 분 이상 걸릴 수 있습니다."
-                                   Style="{StaticResource StatusDetailStyle}"/>
-                        <WrapPanel Margin="0,10,0,0">
-                            <Button Content="전체 드라이브 탐색" Command="{Binding SearchFoldersCommand}" Style="{StaticResource FolderButtonStyle}" Margin="0,0,8,6" Padding="14,0"/>
-                            <Button Content="탐색 취소" Command="{Binding CancelFolderSearchCommand}" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,0,6" Padding="14,0"/>
-                        </WrapPanel>
-                        <TextBlock Text="{Binding FolderSearchStatus}" Style="{StaticResource StatusDetailStyle}"/>
-                        <ComboBox ItemsSource="{Binding DiscoveredFolders}" SelectedItem="{Binding SelectedDiscoveredFolder}" DisplayMemberPath="Display"
-                                  Margin="0,10,0,8" MaxDropDownHeight="240" ToolTip="{Binding SelectedDiscoveredFolder.Path}"/>
-                        <Button Content="선택한 폴더 사용" Command="{Binding UseDiscoveredFolderCommand}" Style="{StaticResource SecondaryButtonStyle}" HorizontalAlignment="Left" Padding="14,0"/>
-                        <TextBlock Text="자동 정리가 켜져 있으면 적용한 스크린샷 폴더에도 현재 보관 기간으로 정리가 적용됩니다."
-                                   Style="{StaticResource StatusDetailStyle}"/>
-                    </StackPanel>
-                </Border>
+
 
                 <Border Style="{StaticResource StatusCardStyle}">
                     <StackPanel>

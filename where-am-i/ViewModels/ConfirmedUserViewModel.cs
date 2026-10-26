@@ -202,49 +202,47 @@ namespace where_am_i.ViewModels
 
         private CancellationTokenSource? folderSearchCancellation;
         private bool searchingFolders;
-        private string folderSearchStatus = "기본 경로를 자동 확인합니다. 찾지 못하면 전체 탐색을 실행해 주세요.";
-        public string FolderSearchStatus { get => folderSearchStatus; private set { folderSearchStatus = value; OnPropertyChanged(); } }
-        public ObservableCollection<DiscoveredFolder> DiscoveredFolders { get; } = new();
-        private DiscoveredFolder? selectedDiscoveredFolder;
-        public DiscoveredFolder? SelectedDiscoveredFolder { get => selectedDiscoveredFolder; set { selectedDiscoveredFolder = value; OnPropertyChanged(); UseDiscoveredFolderCommand.RaiseCanExecuteChanged(); } }
-        public RelayCommand SearchFoldersCommand { get; }
-        public RelayCommand CancelFolderSearchCommand { get; }
-        public RelayCommand UseDiscoveredFolderCommand { get; }
+        public FolderSearchViewModel ScreenshotSearch { get; }
+        public FolderSearchViewModel LogSearch { get; }
+
+        private void SetSearchState(bool active, string? message = null)
+        {
+            ScreenshotSearch.IsSearching = LogSearch.IsSearching = active;
+            ScreenshotSearch.ApplyCommand.RaiseCanExecuteChanged();
+            LogSearch.ApplyCommand.RaiseCanExecuteChanged();
+            if (message is not null) ScreenshotSearch.Status = LogSearch.Status = message;
+        }
 
         private async Task SearchFoldersAsync()
         {
             if (searchingFolders || isDisposed) return;
             searchingFolders = true;
+
             folderSearchCancellation = CancellationTokenSource.CreateLinkedTokenSource(lifetimeCancellation.Token);
             var cancellation = folderSearchCancellation;
-            SearchFoldersCommand.RaiseCanExecuteChanged();
-            CancelFolderSearchCommand.RaiseCanExecuteChanged();
-            FolderSearchStatus = "전체 로컬 드라이브 탐색 중 · 시간이 오래 걸릴 수 있습니다.";
-            var progress = new Progress<int>(count => { if (!isDisposed && searchingFolders) FolderSearchStatus = $"전체 탐색 중 · {count:N0}개 폴더 확인 · 취소할 수 있습니다."; });
+            SetSearchState(true, "전체 로컬 드라이브 탐색 중 · 시간이 오래 걸릴 수 있습니다.");
+            var progress = new Progress<int>(count => { if (!isDisposed && searchingFolders) ScreenshotSearch.Status = LogSearch.Status = $"전체 탐색 중 · {count:N0}개 폴더 확인 · 취소할 수 있습니다."; });
             try
             {
                 var results = await Task.Run(() => FolderDiscoveryService.Search(FolderDiscoveryService.LocalRoots(), progress, cancellation.Token));
                 if (isDisposed) return;
-                DiscoveredFolders.Clear();
-                foreach (var result in results) DiscoveredFolders.Add(result);
-                SelectedDiscoveredFolder = results.FirstOrDefault();
-                FolderSearchStatus = $"탐색 완료 · {results.Count}개 후보 · 사용할 폴더를 선택해 적용해 주세요.";
+                ScreenshotSearch.SetResults(results.Where(r => r.Kind == "screenshot"));
+                LogSearch.SetResults(results.Where(r => r.Kind == "log"));
             }
-            catch (OperationCanceledException) { if (!isDisposed) FolderSearchStatus = "탐색을 취소했습니다."; }
-            catch (Exception) { if (!isDisposed) FolderSearchStatus = "탐색을 완료하지 못했습니다. 폴더를 직접 선택해 주세요."; }
+            catch (OperationCanceledException) { if (!isDisposed) ScreenshotSearch.Status = LogSearch.Status = "탐색을 취소했습니다."; }
+            catch (Exception) { if (!isDisposed) ScreenshotSearch.Status = LogSearch.Status = "탐색을 완료하지 못했습니다. 폴더를 직접 선택해 주세요."; }
             finally
             {
                 searchingFolders = false;
                 folderSearchCancellation = null;
                 cancellation.Dispose();
-                SearchFoldersCommand.RaiseCanExecuteChanged();
-                CancelFolderSearchCommand.RaiseCanExecuteChanged();
+                SetSearchState(false);
             }
         }
 
-        private void UseDiscoveredFolder()
+        private void UseDiscoveredFolder(FolderSearchViewModel search)
         {
-            if (SelectedDiscoveredFolder is not { } candidate) return;
+            if (isDisposed || search.Selected is not { } candidate) return;
             try
             {
                 if (candidate.Kind == "screenshot")
@@ -272,10 +270,10 @@ namespace where_am_i.ViewModels
                     logMonitor.Refresh();
                     _ = ReportPathAsync(PathReportKind.Log, path);
                 }
-                FolderSearchStatus = $"폴더 적용 완료 · {candidate.Path}";
-                AddActivity("폴더 탐색", FolderSearchStatus);
+                search.Status = $"폴더 적용 완료 · {candidate.Path}";
+                AddActivity("폴더 탐색", search.Status);
             }
-            catch (Exception) { FolderSearchStatus = "폴더 설정을 저장하지 못했습니다. 경로를 확인해 주세요."; }
+            catch (Exception) { search.Status = "폴더 설정을 저장하지 못했습니다. 경로를 확인해 주세요."; }
         }
 
         public ConfirmedUserViewModel(string userEmail)
@@ -293,9 +291,10 @@ namespace where_am_i.ViewModels
             SelectFolderCommand = new RelayCommand(SelectScreenshotFolder);
             SelectLogFolderCommand = new RelayCommand(SelectLogFolder);
             ExitCommand = new RelayCommand(ExitApp);
-            SearchFoldersCommand = new RelayCommand(() => _ = SearchFoldersAsync(), () => !searchingFolders && !isDisposed);
-            CancelFolderSearchCommand = new RelayCommand(() => folderSearchCancellation?.Cancel(), () => searchingFolders && !isDisposed);
-            UseDiscoveredFolderCommand = new RelayCommand(UseDiscoveredFolder, () => SelectedDiscoveredFolder is not null && !isDisposed);
+            ScreenshotSearch = new FolderSearchViewModel(() => _ = SearchFoldersAsync(),
+                () => folderSearchCancellation?.Cancel(), () => UseDiscoveredFolder(ScreenshotSearch!));
+            LogSearch = new FolderSearchViewModel(() => _ = SearchFoldersAsync(),
+                () => folderSearchCancellation?.Cancel(), () => UseDiscoveredFolder(LogSearch!));
             SelectCleanupFolderCommand = new RelayCommand(SelectCleanupFolder);
             ApplyCleanupSettingsCommand = new RelayCommand(ApplyCleanupSettings);
 

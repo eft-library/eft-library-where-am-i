@@ -2,7 +2,7 @@
 
 **갱신일: 2026.10.20**
 
-[타르코프 도서관](https://eftlibrary.com)의 라이브 맵과 연동하는 **Windows x64 데스크톱 프로그램**입니다. C# · .NET 10 · WPF로 만들었으며, 현재 프로젝트 제품 버전은 **4.0.0**, 앱·파일 표시 버전은 **4.0.0.0**입니다.
+[타르코프 도서관](https://eftlibrary.com)의 라이브 맵과 연동하는 **Windows x64 데스크톱 프로그램**입니다. C# · .NET 10 · WPF로 만들었으며, 현재 프로젝트 제품 버전은 **4.0.0**, 앱·파일 표시 버전은 **4.0.0.2**입니다.
 
 게임이 생성한 스크린샷 파일명의 좌표와 application/output 로그의 맵·레이드 시작·타이머 기준을 백엔드로 전달합니다. 사용자 확인 후 실행 중에는 자동으로 감지하며, 게임의 실행 파일과 로그는 수정하지 않습니다.
 
@@ -34,7 +34,7 @@ flowchart LR
 | 기능           | 현재 동작                                                                | 주요 코드                                                                                                                                  |
 | -------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | 스크린샷 위치  | 게임 스크린샷 파일명에서 좌표 형식을 확인하고 파일명을 전송              | [ScreenshotLocationSender](where-am-i/Services/ScreenshotLocationSender.cs)                                                                |
-| 스크린샷 정리 | 사용자가 켠 경우 지정 폴더의 오래된 게임 좌표 형식 PNG를 휴지통으로 이동 | [ScreenshotCleanupService](where-am-i/Services/ScreenshotCleanupService.cs), [WindowsRecycleBin](where-am-i/Services/WindowsRecycleBin.cs) |
+| 스크린샷 정리  | 사용자가 켠 경우 지정 폴더의 오래된 게임 좌표 형식 PNG를 휴지통으로 이동 | [ScreenshotCleanupService](where-am-i/Services/ScreenshotCleanupService.cs), [WindowsRecycleBin](where-am-i/Services/WindowsRecycleBin.cs) |
 | 로그 감지      | application/output 로그를 2초 간격으로 확인하고 추가된 부분을 읽음       | [TarkovLogMonitor](where-am-i/Services/TarkovLogMonitor.cs), [TarkovLogSessionReader](where-am-i/Services/TarkovLogSessionReader.cs)       |
 | 실행 폴더 전환 | 새 게임 실행 폴더를 찾아 전환하고 이전 레이드 정보를 초기화              | [TarkovLogTargetSelector](where-am-i/Services/TarkovLogTargetSelector.cs)                                                                  |
 | 레이드 상태    | 맵 로딩·시작·GameTimer 기준을 연결하여 변경 시 전송                      | [TarkovRaidSessionTracker](where-am-i/Services/TarkovRaidSessionTracker.cs), [RaidSessionSender](where-am-i/Services/RaidSessionSender.cs) |
@@ -77,7 +77,7 @@ flowchart LR
 
 프로그램을 먼저 켜고 게임을 나중에 실행해도 새 로그로 전환합니다. 다만 게임 프로세스의 실행 여부를 확인하지 않으므로 새 로그가 생기기 전에는 남아 있는 과거 최신 로그를 읽을 수 있습니다.
 
-기본 경로에서 찾지 못하면 **폴더 자동 탐색 → 전체 드라이브 탐색**을 실행합니다. 전체 로컬 고정 드라이브를 백그라운드에서 검색하며 파일 수에 따라 수 분 이상 걸릴 수 있습니다. 진행 중 취소할 수 있고, 접근할 수 없는 폴더와 연결 폴더는 건너뜁니다. 정확한 좌표 형식 PNG 또는 실행 폴더 안 application 로그가 있는 경로를 후보로 표시합니다. 후보의 경로와 최근 파일 시각을 확인하고 **선택한 폴더 사용**을 누르면 저장하여 다음 실행부터 사용합니다. 전체 탐색은 버튼을 눌렀을 때만 실행합니다.
+기본 경로에서 찾지 못하면 스크린샷·로그 영역의 **스크린샷 폴더 탐색** 또는 **로그 폴더 탐색**을 실행합니다. 전체 로컬 고정 드라이브를 백그라운드에서 검색하며 파일 수에 따라 수 분 이상 걸릴 수 있습니다. 진행 중 취소할 수 있고, 접근할 수 없는 폴더와 연결 폴더는 건너뜁니다. 정확한 좌표 형식 PNG 또는 실행 폴더 안 application 로그가 있는 경로를 후보로 표시합니다. 후보의 경로와 최근 파일 시각을 확인하고 각 영역의 **선택한 스크린샷 폴더 사용** 또는 **선택한 로그 폴더 사용**을 누르면 저장하여 다음 실행부터 사용합니다. 한 번의 전체 탐색으로 두 종류를 함께 찾고 결과·선택·적용 상태는 각 영역에서 따로 표시합니다. 적용한 종류의 설정만 변경됩니다. 전체 탐색은 버튼을 눌렀을 때만 실행하며, 중복 탐색을 막기 위해 탐색 중에는 양쪽 시작 버튼이 비활성화됩니다.
 
 ## 스크린샷 자동 정리
 
@@ -145,12 +145,12 @@ output 로그의 `GameTimer`에는 `utcNow`·`start`·`escape`가 있습니다. 
 
 설정은 기본적으로 `%LocalAppData%\EFTLibrary\WhereAmI` 아래에 저장합니다.
 
-| 파일                     | 내용                                             |
-| ------------------------ | ------------------------------------------------ |
+| 파일                     | 내용                                                                           |
+| ------------------------ | ------------------------------------------------------------------------------ |
 | `settings.json`          | 이메일 저장 선택·저장 이메일·최초 안내·자동 정리 사용 여부·보관 일수·대상 폴더 |
-| `screenshot-path.txt`    | 직접 선택한 스크린샷 경로                        |
-| `log-path.txt`           | 직접 선택한 로그 경로                            |
-| `path-report-state.json` | 경로 종류와 해시에 기반한 수집 완료 상태         |
+| `screenshot-path.txt`    | 직접 선택한 스크린샷 경로                                                      |
+| `log-path.txt`           | 직접 선택한 로그 경로                                                          |
+| `path-report-state.json` | 경로 종류와 해시에 기반한 수집 완료 상태                                       |
 
 지정 경로 보고에 성공하면 반복하지 않고, 실패한 항목은 다음 실행의 사용자 확인 후 다시 시도합니다. 실제 감지는 PC에 저장된 원본 경로를 사용합니다. 과거 `map-aliases.json`은 더 이상 읽지 않습니다.
 
