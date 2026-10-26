@@ -33,6 +33,12 @@ namespace where_am_i.Services
                 Add(paths, Path.Combine(installPath, "build", "Logs"));
             }
 
+            foreach (var library in SteamLibraryPaths.Find())
+            {
+                var install = Path.Combine(library, "steamapps", "common", "Escape from Tarkov");
+                Add(paths, Path.Combine(install, "Logs"));
+                Add(paths, Path.Combine(install, "build", "Logs"));
+            }
             return paths;
         }
 

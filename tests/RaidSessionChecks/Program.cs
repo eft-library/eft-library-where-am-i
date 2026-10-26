@@ -96,6 +96,7 @@ var unknownRequest = where_am_i.Models.SendRaidStateRequest.FromSession("test@ex
 Check(unknownRequest.Map == "FutureCity" && unknownRequest.RaidEndsAt is not null, "No local whitelist blocks a new raw map or its timer");
 Check(TarkovLogParser.FindRawMap("unrelated text") is null, "No observed map remains null");
 Check(TarkovLogParser.FindRawMap("maps/rezerv_base_preset.bundle") == "rezerv_base", "Bundle fallback extracts map name without resolving it");
+DiscoveryChecks.Run(Check);
 ActivityChecks.Run(Check);
 await FileReadingChecks.Run(root, zone, Check);
 await TransmissionChecks.Run(root, zone, Check);

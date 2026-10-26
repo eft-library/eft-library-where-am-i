@@ -8,14 +8,15 @@
         Background="{StaticResource AppBackgroundBrush}"
         Foreground="{StaticResource PrimaryTextBrush}"
         Title="EFT Library - 내 위치 찾기"
-        Height="470"
+        Height="540"
         Width="460"
         ResizeMode="CanMinimize">
     <Window.DataContext>
         <vm:MainViewModel/>
     </Window.DataContext>
 
-    <Grid Background="{StaticResource AppBackgroundBrush}">
+    <ScrollViewer Background="{StaticResource AppBackgroundBrush}"
+                  VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <Border Background="{StaticResource SurfaceBrush}"
                 BorderBrush="{StaticResource BorderBrush}"
                 BorderThickness="1"
@@ -28,7 +29,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <Image Grid.Row="0"
@@ -85,5 +86,5 @@
                            Text="{Binding Message}"/>
             </Grid>
         </Border>
-    </Grid>
+    </ScrollViewer>
 </Window>

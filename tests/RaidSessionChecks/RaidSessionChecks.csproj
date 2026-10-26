@@ -6,6 +6,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../where-am-i/Services/FolderDiscoveryService.cs" Link="Services/FolderDiscoveryService.cs" />
+    <Compile Include="../../where-am-i/Services/SteamLibraryPaths.cs" Link="Services/SteamLibraryPaths.cs" />
+    <Compile Include="../../where-am-i/Services/ScreenshotPathService.cs" Link="Services/ScreenshotPathService.cs" />
     <Compile Include="../../where-am-i/Models/ActivityEntry.cs" Link="Models/ActivityEntry.cs" />
     <Compile Include="../../where-am-i/Services/ActivityHistory.cs" Link="Services/ActivityHistory.cs" />
     <Compile Include="../../where-am-i/Services/LiveMapNavigation.cs" Link="Services/LiveMapNavigation.cs" />

@@ -42,11 +42,8 @@ namespace where_am_i.Services
 
             foreach (var oneDrivePath in GetOneDrivePaths())
             {
-                AddCombinedPath(
-                    paths,
-                    oneDrivePath,
-                    @"Documents\Escape from Tarkov\Screenshots"
-                );
+                foreach (var documents in new[] { "Documents", "문서", "文件", "文档" })
+                    AddCombinedPath(paths, oneDrivePath, Path.Combine(documents, TarkovScreenshotRelativePath));
             }
 
             var picturesPath = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
@@ -105,7 +102,7 @@ namespace where_am_i.Services
             return paths;
         }
 
-        private static IEnumerable<string> GetSteamInstallPaths()
+        internal static IEnumerable<string> GetSteamInstallPaths()
         {
             var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 

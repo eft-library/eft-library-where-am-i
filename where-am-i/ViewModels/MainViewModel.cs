@@ -58,7 +58,7 @@ namespace where_am_i.ViewModels
         }
 
         public bool CanEditUser => !IsCheckingUser;
-        public string CheckUserButtonText => IsCheckingUser ? "확인 중…" : "사용자 확인";
+        public string CheckUserButtonText => IsCheckingUser ? "로그인 중…" : "로그인";
 
         private string message = "";
         public string Message
