@@ -318,7 +318,7 @@ namespace where_am_i.ViewModels
 
             StartMonitoring();
             _ = ReportSavedCustomPathsAsync();
-            _ = CheckVersionAsync();
+            _ = CheckVersionAsync(notifyOnUpdate: true);
             if (appliedCleanupEnabled) _ = RunCleanupAsync();
 
             if (!preferences.HasShownWelcome)
@@ -442,7 +442,7 @@ namespace where_am_i.ViewModels
             }
         }
 
-        private async Task CheckVersionAsync()
+        private async Task CheckVersionAsync(bool notifyOnUpdate = false)
         {
             if (isDisposed || isCheckingVersion) return;
             isCheckingVersion = true;
@@ -473,6 +473,14 @@ namespace where_am_i.ViewModels
                         ? result.Release.DownloadUrl : null;
                 }
                 AddActivity("버전 확인", VersionCheckStatus, result.Outcome == VersionCheckOutcome.Failed);
+                if (notifyOnUpdate && result.Release is not null &&
+                    result.Outcome is VersionCheckOutcome.UpdateAvailable or VersionCheckOutcome.UpdateRequired)
+                {
+                    // The view model is constructed before its window is shown.
+                    // Queue the dialog until the login transition and initial layout have completed.
+                    _ = Application.Current.Dispatcher.BeginInvoke(new Action(() => ShowLoginUpdateNotice(result)),
+                        DispatcherPriority.ContextIdle);
+                }
             }
             finally
             {
@@ -483,6 +491,24 @@ namespace where_am_i.ViewModels
                     OpenUpdateDownloadCommand.RaiseCanExecuteChanged();
                 }
             }
+        }
+
+        private void ShowLoginUpdateNotice(VersionCheckResult result)
+        {
+            if (isDisposed || result.Release is not { } release) return;
+            var owner = Application.Current.Windows.OfType<Window>()
+                .FirstOrDefault(window => ReferenceEquals(window.DataContext, this) && window.IsVisible);
+            if (owner is null) return;
+            var required = result.Outcome == VersionCheckOutcome.UpdateRequired;
+            var answer = MessageBox.Show(owner,
+                $"{(required ? "현재 버전은 지원 최소 버전보다 낮습니다. 업데이트해 주세요." : "새 버전이 있습니다.")}\n\n" +
+                $"현재 버전: {CurrentAppVersion}\n최신 버전: {release.LatestVersion}\n" +
+                (required ? $"지원 최소 버전: {release.MinimumVersion}\n" : "") +
+                "\n다운로드 페이지를 열까요?",
+                required ? "업데이트 필요" : "새 버전 안내",
+                MessageBoxButton.YesNo, required ? MessageBoxImage.Warning : MessageBoxImage.Information,
+                MessageBoxResult.No);
+            if (answer == MessageBoxResult.Yes && !isDisposed) OpenUpdateDownload();
         }
 
         private void OpenUpdateDownload()
