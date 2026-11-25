@@ -205,12 +205,37 @@ namespace where_am_i.ViewModels
         public FolderSearchViewModel ScreenshotSearch { get; }
         public FolderSearchViewModel LogSearch { get; }
 
-        private void SetSearchState(bool active, string? message = null)
+        public RelayCommand SearchFoldersCommand { get; }
+        public RelayCommand CancelFolderSearchCommand { get; }
+        public RelayCommand RegisterFoldersCommand { get; }
+        public bool IsSearchingFolders => searchingFolders;
+        public string RegisterFoldersLabel => ScreenshotSearch.HasPendingPath && LogSearch.HasPendingPath
+            ? "두 폴더 등록"
+            : ScreenshotSearch.HasPendingPath ? "스크린샷 폴더 등록"
+            : LogSearch.HasPendingPath ? "로그 폴더 등록" : "선택한 폴더 등록";
+
+        private string folderSearchStatus = "";
+        public string FolderSearchStatus
         {
-            ScreenshotSearch.IsSearching = LogSearch.IsSearching = active;
-            ScreenshotSearch.ApplyCommand.RaiseCanExecuteChanged();
-            LogSearch.ApplyCommand.RaiseCanExecuteChanged();
-            if (message is not null) ScreenshotSearch.Status = LogSearch.Status = message;
+            get => folderSearchStatus;
+            private set { folderSearchStatus = value; OnPropertyChanged(); }
+        }
+
+        private void UpdateFolderCommands()
+        {
+            OnPropertyChanged(nameof(IsSearchingFolders));
+            SearchFoldersCommand.RaiseCanExecuteChanged();
+            CancelFolderSearchCommand.RaiseCanExecuteChanged();
+            SelectFolderCommand.RaiseCanExecuteChanged();
+            SelectLogFolderCommand.RaiseCanExecuteChanged();
+            RegisterFoldersCommand.RaiseCanExecuteChanged();
+        }
+
+        private void OnFolderSelectionChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName != nameof(FolderSearchViewModel.SelectedPath)) return;
+            OnPropertyChanged(nameof(RegisterFoldersLabel));
+            RegisterFoldersCommand.RaiseCanExecuteChanged();
         }
 
         private async Task SearchFoldersAsync()
@@ -220,39 +245,54 @@ namespace where_am_i.ViewModels
 
             folderSearchCancellation = CancellationTokenSource.CreateLinkedTokenSource(lifetimeCancellation.Token);
             var cancellation = folderSearchCancellation;
-            SetSearchState(true, "전체 로컬 드라이브 탐색 중 · 시간이 오래 걸릴 수 있습니다.");
-            var progress = new Progress<int>(count => { if (!isDisposed && searchingFolders) ScreenshotSearch.Status = LogSearch.Status = $"전체 탐색 중 · {count:N0}개 폴더 확인 · 취소할 수 있습니다."; });
+            FolderSearchStatus = "전체 로컬 드라이브 탐색 중 · 시간이 오래 걸릴 수 있습니다.";
+            UpdateFolderCommands();
+            var progress = new Progress<int>(count => { if (!isDisposed && ReferenceEquals(folderSearchCancellation, cancellation)) FolderSearchStatus = $"전체 탐색 중 · {count:N0}개 폴더 확인 · 취소할 수 있습니다."; });
             try
             {
                 var results = await Task.Run(() => FolderDiscoveryService.Search(FolderDiscoveryService.LocalRoots(), progress, cancellation.Token));
                 if (isDisposed) return;
                 ScreenshotSearch.SetResults(results.Where(r => r.Kind == "screenshot"));
                 LogSearch.SetResults(results.Where(r => r.Kind == "log"));
+                FolderSearchStatus = "탐색 완료";
             }
-            catch (OperationCanceledException) { if (!isDisposed) ScreenshotSearch.Status = LogSearch.Status = "탐색을 취소했습니다."; }
-            catch (Exception) { if (!isDisposed) ScreenshotSearch.Status = LogSearch.Status = "탐색을 완료하지 못했습니다. 폴더를 직접 선택해 주세요."; }
+            catch (OperationCanceledException) { if (!isDisposed) FolderSearchStatus = "탐색을 취소했습니다."; }
+            catch (Exception) { if (!isDisposed) FolderSearchStatus = "탐색을 완료하지 못했습니다. 폴더를 직접 선택해 주세요."; }
             finally
             {
                 searchingFolders = false;
                 folderSearchCancellation = null;
                 cancellation.Dispose();
-                SetSearchState(false);
+                UpdateFolderCommands();
             }
         }
 
-        private void UseDiscoveredFolder(FolderSearchViewModel search)
+        private void RegisterFolders()
         {
-            if (isDisposed || search.Selected is not { } candidate) return;
+            RegisterFolder(ScreenshotSearch, isScreenshot: true);
+            RegisterFolder(LogSearch, isScreenshot: false);
+        }
+
+        private void RegisterFolder(FolderSearchViewModel search, bool isScreenshot)
+        {
+            if (!search.HasPendingPath || search.SelectedPath is not { } selectedPath) return;
+            if (!Directory.Exists(selectedPath))
+            {
+                search.SetError();
+                return;
+            }
+
             try
             {
-                if (candidate.Kind == "screenshot")
+                string path;
+                if (isScreenshot)
                 {
-                    var path = ScreenshotPathService.SaveCustomPath(candidate.Path);
+                    path = ScreenshotPathService.SaveCustomPath(selectedPath);
                     AddWatcher(path);
                     UpdateWatcherStatus();
                     _ = ReportPathAsync(PathReportKind.Screenshot, path);
                     // Existing opt-in and retention apply to the newly selected watch folder too.
-                    if (appliedCleanupEnabled && ScreenshotCleanupService.TryFolder(path, out var normalized))
+                    if (search.IsDiscoveredSelection && appliedCleanupEnabled && ScreenshotCleanupService.TryFolder(path, out var normalized))
                     {
                         preferencesService.SaveScreenshotCleanup(true, appliedCleanupDays, normalized);
                         cleanupCancellation.Cancel();
@@ -266,14 +306,14 @@ namespace where_am_i.ViewModels
                 }
                 else
                 {
-                    var path = TarkovLogPathService.SaveCustomPath(candidate.Path);
+                    path = TarkovLogPathService.SaveCustomPath(selectedPath);
                     logMonitor.Refresh();
                     _ = ReportPathAsync(PathReportKind.Log, path);
                 }
-                search.Status = $"폴더 적용 완료 · {candidate.Path}";
-                AddActivity("폴더 탐색", search.Status);
+                search.SetRegisteredPath(path);
+                AddActivity("폴더 설정", $"폴더 등록 완료 · {path}");
             }
-            catch (Exception) { search.Status = "폴더 설정을 저장하지 못했습니다. 경로를 확인해 주세요."; }
+            catch (Exception) { search.SetError(); }
         }
 
         public ConfirmedUserViewModel(string userEmail)
@@ -288,13 +328,19 @@ namespace where_am_i.ViewModels
             CheckVersionCommand = new RelayCommand(() => _ = CheckVersionAsync(), () => !isCheckingVersion && !isDisposed);
             OpenUpdateDownloadCommand = new RelayCommand(OpenUpdateDownload, () => updateDownloadUrl is not null && !isCheckingVersion && !isDisposed);
             OpenWebCommand = new RelayCommand(OpenWeb);
-            SelectFolderCommand = new RelayCommand(SelectScreenshotFolder);
-            SelectLogFolderCommand = new RelayCommand(SelectLogFolder);
+            ScreenshotSearch = new FolderSearchViewModel("스크린샷 폴더", ScreenshotPathService.GetSavedCustomPath());
+            LogSearch = new FolderSearchViewModel("로그 폴더", TarkovLogPathService.GetSavedCustomPath());
+            SearchFoldersCommand = new RelayCommand(() => _ = SearchFoldersAsync(), () => !searchingFolders && !isDisposed);
+            CancelFolderSearchCommand = new RelayCommand(() => folderSearchCancellation?.Cancel(), () => searchingFolders);
+            RegisterFoldersCommand = new RelayCommand(RegisterFolders,
+                () => !searchingFolders && !isDisposed && (ScreenshotSearch.HasPendingPath || LogSearch.HasPendingPath));
+            SelectFolderCommand = new RelayCommand(
+                () => SelectFolder(ScreenshotSearch, "Escape from Tarkov 스크린샷 폴더 선택"), () => !searchingFolders && !isDisposed);
+            SelectLogFolderCommand = new RelayCommand(
+                () => SelectFolder(LogSearch, "Escape from Tarkov Logs 폴더 선택"), () => !searchingFolders && !isDisposed);
             ExitCommand = new RelayCommand(ExitApp);
-            ScreenshotSearch = new FolderSearchViewModel(() => _ = SearchFoldersAsync(),
-                () => folderSearchCancellation?.Cancel(), () => UseDiscoveredFolder(ScreenshotSearch!));
-            LogSearch = new FolderSearchViewModel(() => _ = SearchFoldersAsync(),
-                () => folderSearchCancellation?.Cancel(), () => UseDiscoveredFolder(LogSearch!));
+            ScreenshotSearch.PropertyChanged += OnFolderSelectionChanged;
+            LogSearch.PropertyChanged += OnFolderSelectionChanged;
             SelectCleanupFolderCommand = new RelayCommand(SelectCleanupFolder);
             ApplyCleanupSettingsCommand = new RelayCommand(ApplyCleanupSettings);
 
@@ -327,7 +373,7 @@ namespace where_am_i.ViewModels
                 {
                     if (isDisposed) return;
                     MessageBox.Show(
-                        "스크린샷과 EFT 로그 폴더를 자동으로 찾습니다.\n\n자동으로 찾지 못한 경우 아래의 폴더 선택 버튼으로 직접 지정해 주세요. 프로그램은 게임 파일을 수정하지 않고 로그와 스크린샷 이름만 읽습니다.",
+                        "스크린샷과 EFT 로그 폴더의 기본 경로를 자동으로 확인합니다.\n\n폴더 설정에서 두 폴더를 함께 탐색하거나 직접 선택한 뒤 등록할 수 있습니다. 프로그램은 게임 파일을 수정하지 않고 로그와 스크린샷 이름만 읽습니다.",
                         "내 위치 찾기 시작하기",
                         MessageBoxButton.OK,
                         MessageBoxImage.Information
@@ -556,64 +602,11 @@ namespace where_am_i.ViewModels
             Application.Current.Shutdown();
         }
 
-        private void SelectScreenshotFolder()
+        private static void SelectFolder(FolderSearchViewModel search, string title)
         {
-            var dialog = new OpenFolderDialog
-            {
-                Title = "Escape from Tarkov 스크린샷 폴더 선택",
-                Multiselect = false
-            };
-
-            if (dialog.ShowDialog() != true)
-                return;
-
-            try
-            {
-                var selectedPath = ScreenshotPathService.SaveCustomPath(dialog.FolderName);
-                _ = ReportPathAsync(PathReportKind.Screenshot, selectedPath);
-                AddWatcher(selectedPath);
-                UpdateWatcherStatus();
-                SetLastActivity($"감시 폴더를 등록했습니다: {selectedPath}");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(
-                    $"감시 폴더를 등록하지 못했습니다.\n{ex.Message}",
-                    "경로 등록 오류",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error
-                );
-            }
-        }
-
-        private void SelectLogFolder()
-        {
-            var dialog = new OpenFolderDialog
-            {
-                Title = "Escape from Tarkov Logs 폴더 선택",
-                Multiselect = false
-            };
-
-            if (dialog.ShowDialog() != true)
-                return;
-
-            try
-            {
-                var selectedPath = TarkovLogPathService.SaveCustomPath(dialog.FolderName);
-                _ = ReportPathAsync(PathReportKind.Log, selectedPath);
-                logMonitor.Refresh();
-                LogStatus = $"로그 폴더를 등록했습니다: {selectedPath}";
-                AddActivity("설정", "로그 감시 폴더를 변경했습니다.");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(
-                    $"로그 폴더를 등록하지 못했습니다.\n{ex.Message}",
-                    "로그 경로 등록 오류",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error
-                );
-            }
+            var dialog = new OpenFolderDialog { Title = title, Multiselect = false };
+            if (dialog.ShowDialog() == true)
+                search.SelectManualPath(dialog.FolderName);
         }
 
         private async Task ReportSavedCustomPathsAsync()
