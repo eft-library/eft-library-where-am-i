@@ -24,27 +24,13 @@
         <DataTemplate x:Key="FolderSelectionTemplate">
             <StackPanel>
                 <TextBlock Text="{Binding Status}" Style="{StaticResource StatusDetailStyle}"/>
-                <TextBlock Text="{Binding SelectedPath}" ToolTip="{Binding SelectedPath}">
-                    <TextBlock.Style>
-                        <Style TargetType="TextBlock" BasedOn="{StaticResource StatusDetailStyle}">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding HasChoices}" Value="True">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding HasPendingPath}" Value="False">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
                 <ComboBox ItemsSource="{Binding Paths}" SelectedItem="{Binding SelectedPath}" ToolTip="{Binding SelectedPath}"
                           AutomationProperties.Name="사용할 폴더" Margin="0,6,0,0" MaxDropDownHeight="240">
                     <ComboBox.Style>
                         <Style TargetType="ComboBox" BasedOn="{StaticResource DarkComboBoxStyle}">
                             <Setter Property="Visibility" Value="Collapsed"/>
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding HasChoices}" Value="True">
+                                <DataTrigger Binding="{Binding HasPaths}" Value="True">
                                     <Setter Property="Visibility" Value="Visible"/>
                                 </DataTrigger>
                             </Style.Triggers>

@@ -8,83 +8,80 @@
         Background="{StaticResource AppBackgroundBrush}"
         Foreground="{StaticResource PrimaryTextBrush}"
         Title="EFT Library - 내 위치 찾기"
-        Height="540"
         Width="460"
+        SizeToContent="Height"
         ResizeMode="CanMinimize">
     <Window.DataContext>
         <vm:MainViewModel/>
     </Window.DataContext>
 
-    <ScrollViewer Background="{StaticResource AppBackgroundBrush}"
-                  VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <Border Background="{StaticResource SurfaceBrush}"
-                BorderBrush="{StaticResource BorderBrush}"
-                BorderThickness="1"
-                CornerRadius="10"
-                Margin="32"
-                Padding="28">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
+    <Border Background="{StaticResource SurfaceBrush}"
+            BorderBrush="{StaticResource BorderBrush}"
+            BorderThickness="1"
+            CornerRadius="10"
+            Margin="32,24"
+            Padding="28,24">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-                <Image Grid.Row="0"
-                       Width="190"
-                       Height="54"
-                       Margin="0,0,0,16"
-                       Source="https://image.eftlibrary.com/eftlibrary/tkl_main%2Flogo.png"
-                       Stretch="Uniform"/>
+            <Image Grid.Row="0"
+                   Width="190"
+                   Height="54"
+                   Margin="0,0,0,16"
+                   Source="https://image.eftlibrary.com/eftlibrary/tkl_main%2Flogo.png"
+                   Stretch="Uniform"/>
 
-                <StackPanel Grid.Row="1" Margin="0,0,0,22">
-                    <TextBlock Text="내 위치 찾기"
-                               FontSize="22"
-                               FontWeight="Bold"
-                               HorizontalAlignment="Center"/>
-                    <TextBlock Text="EFT Library 계정으로 연결하세요"
-                               Margin="0,6,0,0"
-                               Foreground="{StaticResource SecondaryTextBrush}"
-                               FontSize="13"
-                               HorizontalAlignment="Center"/>
-                </StackPanel>
+            <StackPanel Grid.Row="1" Margin="0,0,0,22">
+                <TextBlock Text="내 위치 찾기"
+                           FontSize="22"
+                           FontWeight="Bold"
+                           HorizontalAlignment="Center"/>
+                <TextBlock Text="EFT Library 계정으로 연결하세요"
+                           Margin="0,6,0,0"
+                           Foreground="{StaticResource SecondaryTextBrush}"
+                           FontSize="13"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
 
-                <StackPanel Grid.Row="2" Margin="0,0,0,16">
-                    <TextBlock Text="이메일"
-                               Margin="0,0,0,7"
-                               FontSize="13"
-                               FontWeight="SemiBold"/>
-                    <TextBox Height="44"
-                             IsEnabled="{Binding CanEditUser}"
-                             Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}"/>
-                    <TextBlock Text="타르코프 도서관 웹사이트에서 사용하는 이메일을 입력해 주세요. 이메일은 사이트 마이페이지에서 확인할 수 있습니다."
-                               Margin="0,8,0,0"
-                               Foreground="{StaticResource SecondaryTextBrush}"
-                               FontSize="12"
-                               TextWrapping="Wrap"/>
-                    <CheckBox Content="이메일 저장"
-                              Margin="0,12,0,0"
-                              IsChecked="{Binding RememberEmail}"
-                              IsEnabled="{Binding CanEditUser}"
-                              Foreground="{StaticResource PrimaryTextBrush}"/>
-                </StackPanel>
-
-                <Button Grid.Row="3"
-                        Content="{Binding CheckUserButtonText}"
-                        Command="{Binding CheckUserCommand}"
-                        Style="{StaticResource PrimaryButtonStyle}"
-                        IsDefault="True"/>
-
-                <TextBlock Grid.Row="4"
-                           Margin="0,12,0,0"
-                           Foreground="#FF6568"
+            <StackPanel Grid.Row="2" Margin="0,0,0,16">
+                <TextBlock Text="이메일"
+                           Margin="0,0,0,7"
+                           FontSize="13"
+                           FontWeight="SemiBold"/>
+                <TextBox Height="44"
+                         IsEnabled="{Binding CanEditUser}"
+                         Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}"/>
+                <TextBlock Text="타르코프 도서관 웹사이트에서 사용하는 이메일을 입력해 주세요. 이메일은 사이트 마이페이지에서 확인할 수 있습니다."
+                           Margin="0,8,0,0"
+                           Foreground="{StaticResource SecondaryTextBrush}"
                            FontSize="12"
-                           TextAlignment="Center"
-                           TextWrapping="Wrap"
-                           Text="{Binding Message}"/>
-            </Grid>
-        </Border>
-    </ScrollViewer>
+                           TextWrapping="Wrap"/>
+                <CheckBox Content="이메일 저장"
+                          Margin="0,12,0,0"
+                          IsChecked="{Binding RememberEmail}"
+                          IsEnabled="{Binding CanEditUser}"
+                          Foreground="{StaticResource PrimaryTextBrush}"/>
+            </StackPanel>
+
+            <Button Grid.Row="3"
+                    Content="{Binding CheckUserButtonText}"
+                    Command="{Binding CheckUserCommand}"
+                    Style="{StaticResource PrimaryButtonStyle}"
+                    IsDefault="True"/>
+
+            <TextBlock Grid.Row="4"
+                       Margin="0,12,0,0"
+                       Foreground="#FF6568"
+                       FontSize="12"
+                       TextAlignment="Center"
+                       TextWrapping="Wrap"
+                       Text="{Binding Message}"/>
+        </Grid>
+    </Border>
 </Window>

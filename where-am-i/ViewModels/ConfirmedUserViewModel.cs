@@ -674,7 +674,7 @@ namespace where_am_i.ViewModels
         {
             // Always start after user confirmation, including upgrades with a legacy paused setting.
             RaidStatus = "레이드 정보를 확인하는 중";
-            RefreshWatchers();
+            RefreshDetectedFolders();
             pathRefreshTimer.Start();
             logMonitor.Start();
             AddActivity("감지", "스크린샷·로그 감지를 시작했습니다.");
@@ -753,9 +753,19 @@ namespace where_am_i.ViewModels
             });
         }
 
-        private void OnPathRefreshTimerTick(object? sender, EventArgs e)
+        private void OnPathRefreshTimerTick(object? sender, EventArgs e) => RefreshDetectedFolders();
+
+        private void RefreshDetectedFolders()
         {
             RefreshWatchers();
+            try
+            {
+                LogSearch.SetAutomaticPaths(TarkovLogPathService.FindAutomaticCandidatePaths().Where(Directory.Exists));
+            }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+            {
+                // Keep the available selections if automatic path lookup is temporarily unavailable.
+            }
         }
 
         private void RefreshWatchers()
@@ -777,7 +787,9 @@ namespace where_am_i.ViewModels
                 return;
             }
 
-            foreach (var path in candidatePaths.Where(Directory.Exists))
+            var existingPaths = candidatePaths.Where(Directory.Exists).ToArray();
+            ScreenshotSearch.SetAutomaticPaths(existingPaths);
+            foreach (var path in existingPaths)
             {
                 AddWatcher(path);
             }
