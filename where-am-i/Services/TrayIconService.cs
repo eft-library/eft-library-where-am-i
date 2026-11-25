@@ -33,20 +33,38 @@ namespace where_am_i.Services
             if (isDisposed)
                 return;
 
+            StopTrackingHiddenWindow();
             hiddenWindow = window;
+            window.Closed += OnHiddenWindowClosed;
             window.Hide();
             notifyIcon.Visible = true;
         }
 
-        public void RestoreWindow()
+        public void RestoreWindow(Window? fallbackWindow = null)
         {
-            if (isDisposed || hiddenWindow is null)
+            var window = hiddenWindow ?? fallbackWindow;
+            if (isDisposed || window is null)
                 return;
 
+            StopTrackingHiddenWindow();
+            if (window.WindowState == WindowState.Minimized)
+                window.WindowState = WindowState.Normal;
+            if (!window.IsVisible)
+                window.Show();
+            window.Activate();
+        }
+
+        private void OnHiddenWindowClosed(object? sender, EventArgs e)
+        {
+            StopTrackingHiddenWindow();
+        }
+
+        private void StopTrackingHiddenWindow()
+        {
+            if (hiddenWindow is not null)
+                hiddenWindow.Closed -= OnHiddenWindowClosed;
+            hiddenWindow = null;
             notifyIcon.Visible = false;
-            hiddenWindow.Show();
-            hiddenWindow.WindowState = WindowState.Normal;
-            hiddenWindow.Activate();
         }
 
         private static Icon LoadApplicationIcon()
@@ -65,7 +83,7 @@ namespace where_am_i.Services
                 return;
 
             isDisposed = true;
-            notifyIcon.Visible = false;
+            StopTrackingHiddenWindow();
             notifyIcon.Dispose();
         }
     }

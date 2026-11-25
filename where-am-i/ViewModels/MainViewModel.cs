@@ -130,6 +130,7 @@ namespace where_am_i.ViewModels
                 // 성공 시 화면 전환
                 var confirmedView = new ConfirmedUserView(email: checkedEmail);
                 confirmedView.Show();
+                Application.Current.MainWindow = confirmedView;
 
                 // 현재 창 닫기
                 Application.Current.Windows.OfType<MainView>().FirstOrDefault()?.Close();
